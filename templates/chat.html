@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TTPS Chat</title>
+  <style>
+    :root {
+      --bg: #0f172a; /* slate-900 */
+      --panel: #111827; /* gray-900 */
+      --text: #e5e7eb; /* gray-200 */
+      --muted: #9ca3af; /* gray-400 */
+      --accent: #22c55e; /* green-500 */
+      --bubble-user: #1e293b; /* slate-800 */
+      --bubble-bot: #0b3a2e; /* dark green */
+    }
+    body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    .wrap { max-width: 900px; margin: 0 auto; height: 100dvh; display: grid; grid-template-rows: auto 1fr auto; }
+    header { padding: 16px 20px; border-bottom: 1px solid #1f2937; background:var(--panel); position: sticky; top:0; z-index:10; }
+    header h1 { margin:0; font-size: 18px; font-weight: 600; }
+    main { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+    .msg { display:flex; gap:10px; align-items: flex-start; }
+    .msg .bubble { padding: 10px 12px; border-radius: 12px; max-width: 75%; white-space: pre-wrap; }
+    .msg.user { justify-content: flex-end; }
+    .msg.user .bubble { background: var(--bubble-user); }
+    .msg.bot .bubble { background: var(--bubble-bot); }
+    footer { padding: 12px; border-top: 1px solid #1f2937; background:var(--panel); }
+    form { display:flex; gap:8px; }
+    input[type="text"] { flex:1; padding:10px 12px; border-radius: 8px; border:1px solid #374151; background:#0b1220; color:var(--text); outline: none; }
+    button { background: var(--accent); color:#052e1a; border:none; border-radius: 8px; padding:10px 14px; font-weight:600; cursor:pointer; }
+    button:disabled { opacity:0.6; cursor:not-allowed; }
+    .hint { color: var(--muted); font-size:12px; margin-top:6px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>TTPS Chat</h1>
+    </header>
+    <main id="messages">
+      <div class="msg bot"><div class="bubble">¡Hola! Escribe un mensaje y te responderé.</div></div>
+    </main>
+    <footer>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+        <input id="file-input" type="file" accept="application/pdf" />
+        <button id="upload-btn" type="button">Subir PDF</button>
+        <span id="upload-status" class="hint"></span>
+      </div>
+      <div style="display:flex; gap:12px; align-items:center; margin-bottom:8px; flex-wrap:wrap;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+          <input id="direct-mode" type="checkbox" />
+          <span class="hint">Analizar directamente (sin indexar)</span>
+        </label>
+        <span class="hint">Usa el PDF seleccionado en cada pregunta y no lo guarda. Envío más pesado por mensaje.</span>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+        <label class="hint" for="top-k" title="Número de trozos recuperados por BM25">Top K:</label>
+        <input id="top-k" type="number" min="1" max="50" step="1" value="8" style="width:90px; padding:6px 8px; border-radius:6px; border:1px solid #374151; background:#0b1220; color:var(--text);" />
+        <label class="hint" for="max-context" title="Máximo de caracteres a enviar como contexto al LLM">Máx. contexto (chars):</label>
+        <input id="max-context" type="number" min="500" step="500" placeholder="(por defecto)" style="width:160px; padding:6px 8px; border-radius:6px; border:1px solid #374151; background:#0b1220; color:var(--text);" />
+        <span class="hint">Valores altos mejoran cobertura pero aumentan latencia.</span>
+      </div>
+      <form id="chat-form">
+        <input id="chat-input" type="text" placeholder="Escribe tu mensaje..." autocomplete="off" required />
+        <button id="send-btn" type="submit">Enviar</button>
+      </form>
+  <div class="hint">Enter para enviar. Si el PDF es escaneado o con poco texto, puede que no se extraiga contenido.</div>
+    </footer>
+  </div>
+
+  <script>
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('chat-input');
+    const list = document.getElementById('messages');
+    const sendBtn = document.getElementById('send-btn');
+
+    function addMessage(role, text) {
+      const row = document.createElement('div');
+      row.className = `msg ${role}`;
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+      row.appendChild(bubble);
+      list.appendChild(row);
+      list.scrollTop = list.scrollHeight;
+    }
+
+    async function sendMessage(text) {
+      // Parámetros comunes
+      const topKEl = document.getElementById('top-k');
+      const maxCtxEl = document.getElementById('max-context');
+      const topKVal = parseInt(topKEl && topKEl.value, 10);
+      const maxCtxVal = parseInt(maxCtxEl && maxCtxEl.value, 10);
+
+      const directMode = document.getElementById('direct-mode').checked;
+      if (directMode) {
+        // Analizar directamente el PDF sin indexar
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) throw new Error('Selecciona un PDF para analizar directamente.');
+        const form = new FormData();
+        form.append('file', file);
+        form.append('question', text);
+        if (!Number.isNaN(topKVal) && topKVal > 0) form.append('top_k', String(topKVal));
+        if (!Number.isNaN(maxCtxVal) && maxCtxVal > 0) form.append('max_context_chars', String(maxCtxVal));
+        const res = await fetch('/api/analyze-pdf', { method: 'POST', body: form });
+        if (!res.ok) {
+          const errorText = await res.text().catch(() => 'Error desconocido');
+          throw new Error(`HTTP ${res.status} - ${errorText}`);
+        }
+        return res.json();
+      } else {
+        // Flujo normal con índice
+        const payload = { message: text };
+        if (!Number.isNaN(topKVal) && topKVal > 0) payload.top_k = topKVal;
+        if (!Number.isNaN(maxCtxVal) && maxCtxVal > 0) payload.max_context_chars = maxCtxVal;
+        const res = await fetch('/api/message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errorText = await res.text().catch(() => 'Error desconocido');
+          throw new Error(`HTTP ${res.status} - ${errorText}`);
+        }
+        return res.json();
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+
+      addMessage('user', text);
+      input.value = '';
+      input.focus();
+      sendBtn.disabled = true;
+
+      try {
+        const data = await sendMessage(text);
+        const reply = (data && (data.answer || data.reply)) || 'Sin respuesta';
+        addMessage('bot', reply);
+      } catch (err) {
+        console.error(err);
+        addMessage('bot', 'Ocurrió un error al enviar el mensaje.');
+      } finally {
+        sendBtn.disabled = false;
+      }
+    });
+
+    // Upload PDF
+    const fileInput = document.getElementById('file-input');
+    const uploadBtn = document.getElementById('upload-btn');
+    const uploadStatus = document.getElementById('upload-status');
+
+    uploadBtn.addEventListener('click', async () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) {
+        uploadStatus.textContent = 'Selecciona un PDF';
+        return;
+      }
+      const form = new FormData();
+      form.append('file', file);
+      uploadStatus.textContent = 'Subiendo...';
+      uploadBtn.disabled = true;
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: form });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.ok) throw new Error(data.error || 'Falló la subida');
+        const info = [`PDF subido (id ${data.document_id})`, `${data.chunks ?? 0} trozos indexados`];
+        if (data.warning) info.push(`Aviso: ${data.warning}`);
+        uploadStatus.textContent = info.join(' · ');
+      } catch (e) {
+        console.error(e);
+        uploadStatus.textContent = 'Error al subir PDF';
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
