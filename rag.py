@@ -114,7 +114,9 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
     except Exception:
         return ""
 
-
+# Chunking : Divison de texto en trozos solapados para mejorar la recuperacion
+# Esto es clave para que BM25 pueda trabajar con unidades pequeñas relevantes
+# Mas tarde podriamos agregar embedding + FAISS para mejorar aun mas la recuperacion
 def chunk_text(text: str, chunk_size: Optional[int] = None, overlap: Optional[int] = None) -> List[str]:
     """Divide el texto en trozos solapados para recuperación.
     Tamaños por env si no se pasan: RAG_CHUNK_SIZE, RAG_CHUNK_OVERLAP.
@@ -166,6 +168,7 @@ def add_document_from_text(filename: str, text: str) -> int:
     return doc_id
 
 
+# Ingesta de documentos , extrae PDFs y los guarda en SQlite 
 def add_pdf_file(filename: str, file_bytes: bytes) -> Tuple[int, int]:
     """Indexa un PDF y devuelve (document_id, chunk_count)."""
     text = extract_text_from_pdf(file_bytes)
@@ -211,6 +214,9 @@ def _tokenize(doc: str) -> List[str]:
     return re.findall(r"\w+", doc.lower())
 
 
+# Tokeniza los chunks y usa BM25 para recuperar los mas relevantes
+# Usa BM25Okapi de rank_bm25 para calcular relevancia.
+# Devuelve los top_k chunks mas relevantes
 def retrieve_bm25(query: str, top_k: int = 5, doc_id: Optional[int] = None) -> List[RetrievedChunk]:
     """Recupera top_k chunks usando BM25. Si doc_id se pasa, filtra por ese documento."""
     rows = _load_all_chunks(doc_id=doc_id)
@@ -264,3 +270,37 @@ def make_context(chunks: List[RetrievedChunk], max_chars: Optional[int] = None) 
 
 
 """Listado de documentos removido (no usado por la app)."""
+
+
+def analyze_pdf_in_memory(file_bytes: bytes, question: str, top_k: int = 5, max_context_chars: Optional[int] = None) -> Tuple[List[RetrievedChunk], str]:
+    """Analiza un PDF en memoria sin persistirlo en la base de datos.
+
+    Flujo:
+    - Extrae texto del PDF
+    - Chunking en memoria
+    - Recupera con BM25 sobre los chunks generados
+    - Construye el contexto (usando `make_context`) y devuelve los chunks y el contexto
+
+    Devuelve (chunks, context). Si no hay texto extraído retorna ([], "").
+    """
+    text = extract_text_from_pdf(file_bytes)
+    if not text:
+        return [], ""
+
+    # Crear chunks en memoria
+    chunks_text = chunk_text(text)
+    if not chunks_text:
+        return [], ""
+
+    # BM25 sobre los chunks generados
+    tokenized = [_tokenize(c) for c in chunks_text]
+    bm25 = BM25Okapi(tokenized)
+    scores = bm25.get_scores(_tokenize(question or ""))
+    ranked = sorted(zip(range(len(chunks_text)), scores), key=lambda x: x[1], reverse=True)[:top_k]
+
+    out: List[RetrievedChunk] = []
+    for idx, score in ranked:
+        out.append(RetrievedChunk(document_id=0, chunk_index=int(idx), text=chunks_text[idx], score=float(score)))
+
+    context = make_context(out, max_chars=max_context_chars)
+    return out, context
