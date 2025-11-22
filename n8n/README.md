@@ -1,4 +1,4 @@
-```markdown
+
 # 🔗 n8n — Workflows del Sistema RAG
 
 Esta carpeta contiene la configuración de **n8n** para ejecutar:
