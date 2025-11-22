@@ -1,11 +1,41 @@
-# TTPS Chatbot (Flask + RAG + Groq)
+# Chatbot Academico
 
-Aplicación simple en Flask con una UI de chat que responde en base a PDFs cargados (RAG). El LLM se consume vía Groq.
+Este proyecto implementa un **chatbot académico con RAG (Retrieval-Augmented Generation)** que responde consultas de alumnos a través de **WhatsApp Business** utilizando documentos institucionales (PDFs) y una API de la facultad. Tiene como objetivo pasar a produccion en los servidores de la facultad.
 
-## Requisitos
-- Python 3.12+
-- Poetry
-- Una API key de Groq (https://console.groq.com/)
+🔧 Requisitos
+
+Python: 3.12.3
+Node.js	≥ 18
+Poetry 
+Docker	Recomendado (para n8n y Qdrant)
+Ngrok	Para exponer Flask públicamente
+Meta Cloud API	Cuenta configurada + Webhook verificado
+Una API key de Groq (https://console.groq.com/)
+
+```mermaid
+graph LR
+A[WhatsApp Usuario] --> B[Meta Cloud API]
+B --> C[Flask Webhook]
+C --> D[n8n - Workflow RAG]
+D --> E[Qdrant - Vector Store]
+D --> F[LLM - Groq/OpenAI]
+C <-- Respuesta JSON -- D
+
+* Flask recibe mensajes desde WhatsApp (webhook).
+
+* n8n procesa el RAG: chunking, embeddings, búsqueda y generación.
+
+* Qdrant almacena vectores de los documentos.
+
+* Admin Web (Vue) permite subir PDFs y ver logs.
+
+## 📂 Estructura del Repositorio
+TTPS-chatbot/
+├─ backend-flask/ # Webhook, API interna, normalización números, envío mensajes
+├─ n8n/ # Workflows de ingesta + búsqueda + embedding
+├─ frontend-admin/ # Panel web para subir docs y ver logs
+├─ data/ # Persistencia local (docs y logs)
+└─ README.md # Este archivo
 
 ## Configuración inicial
 

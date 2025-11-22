@@ -8,7 +8,7 @@ App de WhatsApp Business configurada
 
 Número de teléfono verificado para WhatsApp Business
 
-Python 3.8+ y Poetry instalados
+Python 3.12.3 y Poetry instalados
 
 ⚙️ Configuración Inicial
 1. Clonar y Configurar el Proyecto
