@@ -25,13 +25,8 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Configuración de WhatsApp
-WHATSAPP_TOKEN = 'EAATU8YKE7vwBQIocRAlj3ZAT5dkQGDKg9KdM7lpBawGciA7yFKzsL7z1uF5iM8rUrGJsZCYUfuKF0C5v3lKxbWPFrypGEdyggB4DugHr2X7Vr0PJQeUdPOaFWj1WIwpRRfwsORR7gQTPZCZBrZBjxfdlsffTtrNbc81XZBN9k49cLJ7gsebeuOJELaS4ZBCXphuVxPvBvHZAVqIs6DkogZAroOirlpWgmBYlvZBGxk8ZB3obni23TW0ZAZAxLRROcEfjx9j9ghwGtSBOTAuwdWVIhD3K33OrVWTmDxNSjt2N2'
-PHONE_NUMBER_ID = 756896324184416
-VERIFY_TOKEN = 'TTPS-Chatbot-tokenn'
 
-print(f"🔧 Configuración WhatsApp: TOKEN={'✅' if WHATSAPP_TOKEN else '❌'}, PHONE_ID={'✅' if PHONE_NUMBER_ID else '❌'}")
-
+print(f"🔧 Configuración WhatsApp: TOKEN={'✅' if os.getenv("WHATSAPP_TOKEN") else '❌'}, PHONE_ID={'✅' if os.getenv("PHONE_NUMBER_ID") else '❌'}")
 
 # =============================================================================
 # WEBHOOK PRINCIPAL
@@ -39,93 +34,112 @@ print(f"🔧 Configuración WhatsApp: TOKEN={'✅' if WHATSAPP_TOKEN else '❌'}
 
 @app.route("/webhook_whatsapp", methods=["GET", "POST"])
 def webhook_whatsapp():
-    data = request.get_json()
 
-    # Detectar mensajes entrantes (ignorar statuses)
-    if "messages" not in data["entry"][0]["changes"][0]["value"]:
-        print("ℹ️ Webhook recibido sin mensajes (status/update)")
+    # Intentar leer JSON
+    try:
+        data = request.get_json(force=True)
+    except:
+        print("❌ JSON inválido en webhook")
+        return "bad request", 400
+
+    # Validación estructural
+    try:
+        value = data["entry"][0]["changes"][0]["value"]
+        messages = value.get("messages")
+        if not messages:
+            print("ℹ️ Evento de estado, sin mensajes")
+            return "ok", 200
+
+        message_obj = messages[0]
+
+    except Exception as e:
+        print(f"❌ Error parseando estructura: {e}")
         return "ok", 200
 
-    message_obj = data["entry"][0]["changes"][0]["value"]["messages"][0]
-    sender = message_obj["from"]
-    message = message_obj.get("text", {}).get("body", "")
+    sender = message_obj.get("from")
+    msg_type = message_obj.get("type")
+    timestamp = message_obj.get("timestamp")
 
-    # Normalización nueva
-    from utils.phone_utils import normalize_phone
+    print("\n📩 Webhook recibido")
+    print(f"👤 De: {sender}")
+    print(f"📌 Tipo: {msg_type}")
+
+    # Solo texto
+    if msg_type != "text":
+        send_whatsapp_message(
+            sender,
+            "⚠️ Solo puedo procesar mensajes de texto."
+        )
+        return "ok", 200
+
+    # Obtener body
+    message = message_obj.get("text", {}).get("body", "").strip()
+
+    if not message:
+        send_whatsapp_message(sender, "⚠️ El mensaje está vacío.")
+        return "ok", 200
+
+    # Normalización
     e164, wa_id, valid = normalize_phone(sender)
 
-    print(f"\n📩 Webhook recibido")
-    print(f"👤 Raw: {sender}")
-    print(f"📌 e164: {e164}")
-    print(f"📌 whatsapp_id: {wa_id}")
-    print(f"✔ válido: {valid}")
+    text = message  # limpio y claro
 
-    # Si no se pudo normalizar => fallback
-    if not valid:
-        print("⚠ No se pudo normalizar el número, usando raw")
-        wa_id = sender
+    # -------------------------------------------------------------------------
+    # 🔗 Enviar datos crudos a n8n
+    # -------------------------------------------------------------------------
+    N8N_URL = os.getenv("N8N_WEBHOOK")
 
-    # Respuesta por defecto
-    response = (
-        "🤖 He recibido tu mensaje. Actualmente no tengo documentos cargados. "
-        "Podés subir PDFs desde la interfaz web."
-    )
+    if N8N_URL:
+        try:
+            requests.post(
+                N8N_URL,
+                json={
+                    "sender": sender,
+                    "e164": e164,
+                    "wa_id": wa_id,
+                    "type": msg_type,
+                    "text": text,
+                    "timestamp": timestamp,
+                },
+                timeout=5
+            )
+            print("📤 Datos enviados a n8n")
+        except Exception as ex:
+            print(f"❌ Error enviando a n8n: {ex}")
+    else:
+        print("⚠ N8N_WEBHOOK no configurado")
 
-    send_whatsapp_message(f"whatsapp:{wa_id}", response)
+    # Respuesta automática
+    send_whatsapp_message(sender, "Recibí tu mensaje")
 
     return "ok", 200
 
 
-# =============================================================================
-# FUNCIONES DE NORMALIZACIÓN PARA NÚMEROS ARGENTINOS
-# =============================================================================
-"""
-def normalize_argentine_number(number):
-    if number.startswith("whatsapp:"):
-        number = number.replace("whatsapp:", "")
 
-    print(f"🔍 NORMALIZACIÓN - Entrada: {number} (len: {len(number)})")
-
-    # Caso general Argentina móvil con 9 → removerlo
-    if number.startswith("549") and len(number) > 4:
-        normalized = "54" + number[3:]
-        print(f"🔍 Normalizado móvil AR: {number} → {normalized}")
-        return normalized
-
-    # Ya normalizado (54 + resto)
-    if number.startswith("54") and len(number) > 4:
-        print(f"🔍 Ya normalizado: {number}")
-        return number
-
-    print(f"⚠ Formato no reconocido, devolviendo original")
-    return number
-"""
 
 # =============================================================================
 # FUNCIÓN DE ENVÍO DE MENSAJES WHATSAPP
 # =============================================================================
 def send_whatsapp_message(to, message):
-    """
-    Envía un mensaje por WhatsApp asegurando normalización correcta.
-    Acepta formatos: "549..." "whatsapp:549..." "5422..." etc.
-    """
-
-    # Normalizar SIEMPRE primero
-    raw, wa_id, valid = normalize_phone(to)
-    whatsapp_to = f"whatsapp:{wa_id}"
+    e164, wa_id, valid = normalize_phone(to)
 
     if not valid:
-        print(f"⚠ Número no válido: {to}")
+        print(f"⚠ Número inválido: {to}")
         return False
 
-    if not WHATSAPP_TOKEN or not PHONE_NUMBER_ID:
-        print("⚠ Falta WHATSAPP_TOKEN o PHONE_NUMBER_ID")
+    whatsapp_to = f"whatsapp:{wa_id}"
+
+    PHONE_ID = os.getenv("PHONE_NUMBER_ID")
+    TOKEN = os.getenv("WHATSAPP_TOKEN")
+
+    if not PHONE_ID or not TOKEN:
+        print("❌ Falta PHONE_NUMBER_ID o WHATSAPP_TOKEN")
         return False
 
-    url = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+    url = f"https://graph.facebook.com/v19.0/{PHONE_ID}/messages"
 
     headers = {
-        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+        "Authorization": f"Bearer {TOKEN}",
         "Content-Type": "application/json"
     }
 
@@ -136,31 +150,25 @@ def send_whatsapp_message(to, message):
         "text": {"body": message},
     }
 
-    print(f"🔍 Enviando mensaje a {whatsapp_to}")
-    print(f"🔍 Payload: {payload}")
+    print(f"📤 Enviando mensaje a {whatsapp_to}")
+    print(f"📦 Payload: {payload}")
 
     try:
-        resp = requests.post(url, headers=headers, json=payload, timeout=10)
+        r = requests.post(url, headers=headers, json=payload, timeout=10)
 
-        print(f"🔍 Status: {resp.status_code}")
-        print(f"🔍 Response: {resp.text}")
+        print(f"🔍 Status: {r.status_code}")
+        print(f"🔍 Respuesta API: {r.text}")
 
-        if resp.status_code == 200:
+        if r.status_code == 200:
             print("✅ Mensaje enviado correctamente")
             return True
-
-        # Manejo detallado de errores API
-        try:
-            error = resp.json().get("error", {})
-            print(f"❌ ERROR ({error.get('code')}): {error.get('message')}")
-        except:
-            print("❌ Error no parseable")
 
         return False
 
     except Exception as e:
         print(f"❌ Error enviando mensaje: {e}")
         return False
+
 
 
 # =============================================================================
