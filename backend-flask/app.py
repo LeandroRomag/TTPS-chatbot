@@ -19,11 +19,12 @@ from dotenv import load_dotenv
 from rag import add_pdf_file, retrieve_bm25, make_context, analyze_pdf_in_memory
 from llm import build_prompt, call_llm
 from utils.phone_utils import normalize_phone 
+from src import create_app
 
 # Cargar variables de entorno
 load_dotenv()
 
-app = Flask(__name__)
+app = create_app()
 
 
 print(f"🔧 Configuración WhatsApp: TOKEN={'✅' if os.getenv("WHATSAPP_TOKEN") else '❌'}, PHONE_ID={'✅' if os.getenv("PHONE_NUMBER_ID") else '❌'}")
