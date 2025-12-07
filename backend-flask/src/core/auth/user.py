@@ -23,8 +23,8 @@ class User(Base):
     nombre: Mapped[str] = mapped_column(String(50), nullable=False)
     apellido: Mapped[str] = mapped_column(String(50), nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
-    password_hash: Mapped[str] = mapped_column(String(128), nullable=False)
-    sysadmin: Mapped[bool] = mapped_column(Boolean, default=False)
+    password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
+    system_admin: Mapped[bool] = mapped_column(Boolean, default=False)
     role: Mapped[str] = mapped_column(
         Enum(UserRole, name='user_role'), 
         nullable=False, 

@@ -19,21 +19,18 @@ def reset_db():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
 
-    Session = db.sessionmaker(bind=engine)
-    session = Session()
-    from src.core.auth.user import User as Usuario
+    from src.core.auth.user import User as Usuario, UserRole
     superAdmin = Usuario(
         nombre="Super",
         apellido="Admin",
         email="admin@gmail.com",
         password_hash=generate_password_hash("admin123"),
-        rol="admin",
-        activo=True,
+        role=UserRole.ADMIN,
+        active=True,
         system_admin=True,
     )
 
-    session.add(superAdmin)
-    session.commit()
-    session.close()
+    db.session.add(superAdmin)
+    db.session.commit()
 
     print("Database reset. Superadmin created!")
