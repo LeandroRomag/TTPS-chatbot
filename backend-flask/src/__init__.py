@@ -1,6 +1,6 @@
 from flask import Flask
 from src.core.config import config_by_name
-from src.core.database import db
+from src.core.database import db, reset_db 
 from src.web.controllers.auth_controller import authentication_blueprint
 from src.web.controllers.user_controller import user_blueprint
 from src.web.controllers.document_controller import document_blueprint

@@ -1,0 +1,66 @@
+/* Fondo general */
+.login-container {
+    background-color: #f0f0f0;      /* Gris clarito como la imagen */
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Caja del login */
+.login-box {
+    background-color: white;
+    border: 3px solid #8b0000;      /* Bordo/rojo exacto de la imagen */
+    border-radius: 6px;
+    padding: 50px 60px;
+    text-align: center;
+    width: 420px;
+}
+
+/* Título */
+.login-title {
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 40px;
+    color: #000;
+}
+
+/* Inputs */
+.login-input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 30px;
+    background-color: #e4e4e4;      /* Gris del mockup */
+    border: 2px solid #8b0000;      
+    border-radius: 4px;
+    font-size: 16px;
+    text-align: center;
+}
+
+/* Botón */
+.login-btn {
+    width: 70%;
+    padding: 12px;
+    background-color: #8b0000;
+    border: none;
+    border-radius: 4px;
+    font-size: 17px;
+    color: white;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.login-btn:hover {
+    background-color: #a40000;
+}
+
+/* Error */
+.error-msg {
+    margin-top: 20px;
+    background: #ffdddd;
+    padding: 10px;
+    border: 1px solid #d40000;
+    color: #800000;
+    border-radius: 4px;
+    font-size: 14px;
+}

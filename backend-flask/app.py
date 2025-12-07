@@ -29,6 +29,8 @@ app = create_app()
 
 print(f"🔧 Configuración WhatsApp: TOKEN={'✅' if os.getenv("WHATSAPP_TOKEN") else '❌'}, PHONE_ID={'✅' if os.getenv("PHONE_NUMBER_ID") else '❌'}")
 
+
+
 # =============================================================================
 # WEBHOOK PRINCIPAL
 # =============================================================================

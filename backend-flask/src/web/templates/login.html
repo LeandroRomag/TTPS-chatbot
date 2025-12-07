@@ -3,26 +3,41 @@
 {% block title %}Iniciar Sesión - Facultad de Informática{% endblock %}
 
 {% block body %}
-<div class="auth-gradient min-vh-100 d-flex align-items-center justify-content-center p-4">
-    <div class="card shadow-lg border-0" style="max-width: 420px; width: 100%;">
-        <div class="card-body p-4 p-md-5">
-            <!-- Header -->
-            <div class="text-center mb-4">
-                <h1 class="h4 fw-semibold text-dark mb-2">
-                    <i class="bi bi-gear-fill me-2 text-primary-custom"></i>Facultad de Informática
-                </h1>
-                <p class="text-muted small mb-0">Implementación del login</p>
-            </div>
 
-            <!-- Form -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 
+<div class="login-container">
+    <div class="login-box">
 
-            {% if error %}
-            <div class="alert alert-danger mt-3 mb-0 small" role="alert">
-                {{ error }}
-            </div>
-            {% endif %}
+        <h2 class="login-title">Iniciar Sesion</h2>
+
+        <form method="POST" action="{{ url_for('authentication.login') }}">
+
+            <input 
+                type="email" 
+                name="email" 
+                placeholder="Correo electronico" 
+                class="login-input"
+                required
+            >
+
+            <input 
+                type="password" 
+                name="password" 
+                placeholder="Contraseña" 
+                class="login-input"
+                required
+            >
+
+            <button type="submit" class="login-btn">Ingresar</button>
+        </form>
+
+        {% if error %}
+        <div class="error-msg">
+            {{ error }}
         </div>
+        {% endif %}
     </div>
 </div>
+
 {% endblock %}
