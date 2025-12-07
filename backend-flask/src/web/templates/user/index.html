@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Usuarios - Facultad de Informática{% endblock %}
+
+{% block body %}
+{% include "partials/_sidebar.html" %}
+
+<div class="d-flex flex-column flex-grow-1">
+
+    <!-- Main Content -->
+    <main class="main-content flex-grow-1 p-4 p-lg-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 fw-semibold text-dark mb-0">Usuarios</h1>
+            <a href="{{ url_for('user.create') }}" class="btn btn-primary-custom">
+                <i class="bi bi-person-plus me-2"></i>Nuevo Usuario
+            </a>
+        </div>
+
+        <!-- TODO: Implementar boton para agregar nuevo usuario (administrador) -->
+
+        <!-- TODO: Implementar tabla de usuarios -->
+
+    </main>
+
+</div>
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Subir Documento - Facultad de Informática{% endblock %}
+
+{% block body %}
+{% include "partials/_sidebar.html" %}
+
+<div class="d-flex flex-column flex-grow-1">
+
+    <!-- Main Content -->
+    <main class="main-content flex-grow-1 p-4 p-lg-5">
+        <div class="d-flex align-items-center gap-3 mb-4">
+            <a href="{{ url_for('document.index') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1 class="h2 fw-semibold text-dark mb-0">Subir Documento</h1>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6 col-xl-5">
+                <div class="card border">
+                    <div class="card-body p-4">
+
+                        <!-- TODO: Implementar form para creación de documento, luego implementar lógica de edición y eliminación -->
+
+                        {% if success %}
+                        <div class="alert alert-success mt-3 mb-0 small" role="alert">
+                            <i class="bi bi-check-circle me-2"></i>{{ success }}
+                        </div>
+                        {% endif %}
+
+                        {% if error %}
+                        <div class="alert alert-danger mt-3 mb-0 small" role="alert">
+                            <i class="bi bi-exclamation-circle me-2"></i>{{ error }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+</div>
+{% endblock %}

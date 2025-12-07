@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, redirect, url_for
+
 authentication_blueprint = Blueprint("authentication", __name__, url_prefix="/auth")
 
 @authentication_blueprint.get("/login")
@@ -7,19 +8,16 @@ def login():
 
 @authentication_blueprint.post("/login")
 def login_post():
-    # login logic
-    print("mostrar mensaje de login correcto y redireccionar a la pantalla de dashboard indicando credenciales correctas")
-    return "login post"  # Placeholder - implement actual logic
+    # TODO: Implement login logic with session management
+    # On success: redirect to dashboard
+    # On failure: return to login with error message
+    return redirect(url_for("authentication.dashboard"))
 
+@authentication_blueprint.get("/dashboard")
+def dashboard():
+    return render_template("dashboard.html", active_page='inicio')
 
 @authentication_blueprint.get("/logout")
 def logout():
-    # logout logic
-    print("mostrar mensaje de logout correcto y redireccionar a la pantalla de login") # return redirect(url_for("authentication.login"))
-
-# controller para que un administrador cree otros usuarios
-@authentication_blueprint.get("/create-admin")
-def create_admin():
-    return render_template("create_admin.html")
-
-
+    # TODO: Implement logout logic (clear session)
+    return redirect(url_for("authentication.login"))

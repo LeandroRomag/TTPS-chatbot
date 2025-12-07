@@ -2,6 +2,8 @@ from flask import Flask
 from src.core.config import config_by_name
 from src.core.database import db
 from src.web.controllers.auth_controller import authentication_blueprint
+from src.web.controllers.user_controller import user_blueprint
+from src.web.controllers.document_controller import document_blueprint
 
 def create_app(env='development', static_folder=None):
     # template_folder es relativo al directorio donde está __init__.py (src/)
@@ -14,6 +16,8 @@ def create_app(env='development', static_folder=None):
 
     # Registro de blueprints
     app.register_blueprint(authentication_blueprint)
+    app.register_blueprint(user_blueprint)
+    app.register_blueprint(document_blueprint)
 
     # Comandos
     @app.cli.command('reset-db')
