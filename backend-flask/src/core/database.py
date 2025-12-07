@@ -2,7 +2,9 @@ from flask_sqlalchemy_lite import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 
 db = SQLAlchemy()
-Base = DeclarativeBase()
+
+class Base(DeclarativeBase):
+    pass
 
 # Configurar la base de datos en la app flask
 def init_app(app):
