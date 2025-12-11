@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from urllib.parse import quote_plus
 
 load_dotenv()
 
@@ -19,8 +20,9 @@ class DevelopmentConfig(Config):
     DB_SCHEMA = os.getenv('DB_SCHEMA', 'postgresql')
     
     # flask-sqlalchemy-lite requires SQLALCHEMY_ENGINES dict
+    # quote_plus encodes special characters in password (ó, ñ, @, etc.)
     SQLALCHEMY_ENGINES = {
-        'default': f"{os.getenv('DB_SCHEMA', 'postgresql')}://{os.getenv('DB_USER', 'postgres')}:{os.getenv('DB_PASSWORD', 'postgres')}@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME', 'chatbot_db')}"
+        'default': f"{os.getenv('DB_SCHEMA', 'postgresql')}://{quote_plus(os.getenv('DB_USER', 'postgres'))}:{quote_plus(os.getenv('DB_PASSWORD', 'postgres'))}@{os.getenv('DB_HOST', 'localhost')}:{os.getenv('DB_PORT', '5432')}/{os.getenv('DB_NAME', 'chatbot_db')}"
     }
     
 
