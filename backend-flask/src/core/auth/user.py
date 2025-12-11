@@ -25,10 +25,10 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
     password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     system_admin: Mapped[bool] = mapped_column(Boolean, default=False)
-    role: Mapped[str] = mapped_column(
+    role: Mapped[UserRole] = mapped_column(
         Enum(UserRole, name='user_role'), 
         nullable=False, 
-        default='admin'
+        default=UserRole.ADMIN
     )
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -51,12 +51,12 @@ class User(Base):
         return self.active
 
     def is_sysadmin(self):
-        """Usa el campo sysadmin de la BD."""
-        return self.sysadmin
+        """Usa el campo system_admin de la BD."""
+        return self.system_admin
     
     def is_admin(self):
         """Usa el campo role de la BD."""
-        return self.role == UserRole.ADMIN.value
+        return self.role == UserRole.ADMIN
 
     def __repr__(self):
         return f'<User {self.email} ({self.role})>'

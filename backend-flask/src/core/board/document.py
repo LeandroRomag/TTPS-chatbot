@@ -18,7 +18,7 @@ class Document(Base):
     file_path: Mapped[str] = mapped_column(String(255), nullable=False)
 
     uploaded_by: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=True)
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now(timezone.utc), nullable=False)
+    uploaded_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
     uploader: Mapped["User"] = relationship("User", back_populates="uploaded_documents")
 
