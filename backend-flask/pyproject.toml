@@ -6,7 +6,7 @@ authors = [
     {name = "Leandro Daniel Romagnoli",email = "romagnolileandro02@gmail.com"}
 ]
 readme = "README.md"
-requires-python = "^3.12.3"
+requires-python = ">=3.12"
 dependencies = [
     "flask (>=3.1.2,<4.0.0)",
     "pypdf (>=6.1.1,<7.0.0)",
