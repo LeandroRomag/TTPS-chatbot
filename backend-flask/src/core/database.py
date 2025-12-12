@@ -15,6 +15,16 @@ def reset_db():
     
     print("Resetting database...")
     engine = db.get_engine()
+    try:
+        # SQLAlchemy URL may hide password; show full repr for debugging
+        url = engine.url
+        try:
+            url_str = url.render_as_string(hide_password=False)
+        except Exception:
+            url_str = str(url)
+        print(f"Engine URL (repr): {repr(url_str)}")
+    except Exception as e:
+        print(f"Could not obtain engine URL: {e}")
 
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
