@@ -8,11 +8,17 @@ from src.web.controllers.document_controller import document_blueprint
 # Import models to ensure they are registered with SQLAlchemy
 from src.core.auth.user import User
 from src.core.board.document import Document
-
+import os
 def create_app(env='development', static_folder=None):
     # template_folder es relativo al directorio donde está __init__.py (src/)
-    app = Flask(__name__, template_folder='web/templates')
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))      # .../project/src
+    PROJECT_ROOT = os.path.abspath(os.path.join(BASE_DIR, ".."))  # .../project
 
+    app = Flask(
+        __name__,
+        template_folder=os.path.join(BASE_DIR, "web", "templates"),
+        static_folder=os.path.join(PROJECT_ROOT, "static")
+    )
     # Cargar configuración según el entorno
     app.config.from_object(config_by_name[env])
 

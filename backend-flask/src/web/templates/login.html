@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 
 {% block title %}Iniciar Sesión - Facultad de Informática{% endblock %}
-
+{% block extra_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/login.css') }}">
+{% endblock %}
 {% block body %}
 
-<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+
 
 <div class="login-container">
     <div class="login-box">

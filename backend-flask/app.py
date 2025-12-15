@@ -20,6 +20,7 @@ from rag import add_pdf_file, retrieve_bm25, make_context, analyze_pdf_in_memory
 from llm import build_prompt, call_llm
 from utils.phone_utils import normalize_phone 
 from src import create_app
+from flask import redirect
 
 # Cargar variables de entorno
 load_dotenv()
@@ -231,10 +232,9 @@ def test_send_message(number):
 
 
 
-@app.get("/")
-def root():
-    return jsonify({"message": "Hola desde Flask con Poetry!"})
-
+@app.route("/")
+def index():
+    return redirect("/auth/login")
 
 @app.get("/health")
 def health():

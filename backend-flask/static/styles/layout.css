@@ -1,0 +1,61 @@
+/* Sidebar */
+.sidebar {
+    width: 220px;
+    background-color: var(--primary-color);
+    transition: width 0.3s ease;
+}
+
+.sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.sidebar .nav-link:hover {
+    background-color: var(--primary-hover);
+    color: white;
+}
+
+.sidebar .nav-link.active {
+    background-color: var(--primary-dark);
+    color: white;
+    border-left-color: white;
+}
+
+/* Layout */
+.main-content {
+    margin-left: 220px;
+}
+
+.top-header,
+.main-footer {
+    margin-left: 220px;
+}
+
+/* Cards */
+.card-hover:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.2s ease;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sidebar {
+        width: 70px;
+    }
+
+    .sidebar .sidebar-brand-text,
+    .sidebar .nav-link span {
+        display: none;
+    }
+
+    .sidebar .nav-link {
+        justify-content: center;
+    }
+
+    .main-content,
+    .top-header,
+    .main-footer {
+        margin-left: 70px;
+    }
+}
