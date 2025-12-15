@@ -9,52 +9,40 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY')
 
 
-
 class DevelopmentConfig(Config):
     DEBUG = True
-    # Build database URL from individual components (only use Postgres
-    # when the user explicitly configured it via environment variables).
-    DB_NAME = os.getenv('DB_NAME')
-    DB_USER = os.getenv('DB_USER')
-    DB_PASSWORD = os.getenv('DB_PASSWORD')
-    DB_HOST = os.getenv('DB_HOST')
-    DB_PORT = os.getenv('DB_PORT')
-    DB_SCHEMA = os.getenv('DB_SCHEMA')
-
-    # If the environment doesn't explicitly request Postgres (no DB_SCHEMA)
-    # or if required connection pieces are missing, fall back to SQLite.
-    if not DB_SCHEMA or not (DB_USER and DB_PASSWORD and DB_HOST and DB_NAME):
-        sqlite_path = os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'dev.sqlite')
-        sqlite_path = os.path.normpath(sqlite_path)
-        SQLALCHEMY_ENGINES = {'default': f"sqlite:///{sqlite_path}"}
-    else:
-        # Use SQLAlchemy URL.create to ensure proper encoding of username/password
-        driver = DB_SCHEMA
-        if DB_SCHEMA == 'postgresql':
-            driver = 'postgresql+psycopg2'
-
-        SQLALCHEMY_ENGINES = {
-            'default': str(
-                URL.create(
-                    drivername=driver,
-                    username=DB_USER or None,
-                    password=DB_PASSWORD or None,
-                    host=DB_HOST or None,
-                    port=int(DB_PORT) if DB_PORT else None,
-                    database=DB_NAME or None,
-                )
-            )
+    
+    # Build database URL from individual components
+    DB_NAME = os.getenv('DB_NAME', 'chatbot_db')
+    DB_USER = os.getenv('DB_USER', 'postgres')
+    DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
+    DB_HOST = os.getenv('DB_HOST', 'localhost')
+    DB_PORT = os.getenv('DB_PORT', '5432')
+    
+    # flask-sqlalchemy-lite requires SQLALCHEMY_ENGINES dict
+    # Usamos URL.create() para manejar caracteres especiales en credenciales
+    # client_encoding='utf8' resuelve UnicodeDecodeError en Windows con locale cp1252
+    SQLALCHEMY_ENGINES = {
+        'default': {
+            'url': URL.create(
+                drivername="postgresql",
+                username=os.getenv('DB_USER', 'postgres'),
+                password=os.getenv('DB_PASSWORD', 'postgres'),
+                host=os.getenv('DB_HOST', 'localhost'),
+                port=int(os.getenv('DB_PORT', '5432')),
+                database=os.getenv('DB_NAME', 'chatbot_db')
+            ),
+            'client_encoding': 'utf8'
         }
+    }
+
 
 class TestingConfig(Config):
     TESTING = True
-    
 
 
 class ProductionConfig(Config):
     DEBUG = False
-    
-
 
 
 # Diccionario para mapear nombres de configuración a clases
