@@ -3,42 +3,36 @@
 {% block title %}Administradores{% endblock %}
 
 {% block body %}
-<div class="container mt-5" style="max-width: 700px;">
+<div class="row g-4">
 
-    <h4 class="mb-4">
-        Administradores Registrados ({{ admins|length }})
-    </h4>
+    <div class="col-lg-7">
+        <h4>Administradores Registrados ({{ admins|length }})</h4>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endwith %}
+        {% for admin in admins %}
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="fw-semibold">{{ admin.email }}</div>
+                    <small class="text-muted">
+                        Registrado: {{ admin.created_at.strftime("%Y-%m-%d") }}
+                    </small>
+                </div>
 
-    {% for admin in admins %}
-    <div class="card mb-3 shadow-sm">
-        <div class="card-body d-flex justify-content-between align-items-center">
-
-            <!-- Info -->
-            <div>
-                <div class="fw-semibold">{{ admin.email }}</div>
-                <small class="text-muted">
-                    Registrado: {{ admin.created_at.strftime("%Y-%m-%d") }}
-                </small>
+                <form method="POST"
+                      action="{{ url_for('user.delete', user_id=admin.id) }}"
+                      onsubmit="return confirm('¿Eliminar este administrador?');">
+                    <button class="btn btn-link text-danger p-0">
+                        <i class="bi bi-trash fs-5"></i>
+                    </button>
+                </form>
             </div>
-
-            <!-- Delete -->
-            <form method="POST"
-                  action="{{ url_for('user.delete', user_id=admin.id) }}"
-                  onsubmit="return confirm('¿Eliminar este administrador?');">
-                <button class="btn btn-link text-danger p-0">
-                    <i class="bi bi-trash fs-5"></i>
-                </button>
-            </form>
-
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+
+    <div class="col-lg-5">
+        {% include "user/create.html" %}
+    </div>
 
 </div>
 {% endblock %}

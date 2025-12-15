@@ -18,6 +18,7 @@ def index():
         active_page="usuarios"
     )
 
+
 @user_blueprint.post("/<int:user_id>/delete")
 def delete(user_id):
     user = db.session.get(User, user_id)

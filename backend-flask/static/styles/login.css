@@ -64,3 +64,21 @@
     border-radius: 4px;
     font-size: 14px;
 }
+
+.login-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid #ddd;
+    padding: 16px 0;
+}
+
+.login-header-logos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;          /* separación entre logos */
+}
+
+.login-logo {
+    height: 60px;
+    object-fit: contain;
+}
