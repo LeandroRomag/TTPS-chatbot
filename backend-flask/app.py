@@ -79,38 +79,17 @@ def webhook_whatsapp():
         send_whatsapp_message(sender, "⚠️ El mensaje está vacío.")
         return "ok", 200
 
-    # Normalización
-    e164, wa_id, valid = normalize_phone(sender)
+    print(f"💬 Mensaje: {message}")
 
     text = message  # limpio y claro
 
-    # -------------------------------------------------------------------------
-    # 🔗 Enviar datos crudos a n8n
-    # -------------------------------------------------------------------------
-    N8N_URL = os.getenv("N8N_WEBHOOK")
+    print(f"🕒 Timestamp: {timestamp}")
 
-    if N8N_URL:
-        try:
-            requests.post(
-                N8N_URL,
-                json={
-                    "sender": sender,
-                    "e164": e164,
-                    "wa_id": wa_id,
-                    "type": msg_type,
-                    "text": text,
-                    "timestamp": timestamp,
-                },
-                timeout=5
-            )
-            print("📤 Datos enviados a n8n")
-        except Exception as ex:
-            print(f"❌ Error enviando a n8n: {ex}")
-    else:
-        print("⚠ N8N_WEBHOOK no configurado")
-
-    # Respuesta automática
-    send_whatsapp_message(sender, "Recibí tu mensaje")
+    # Procesar mensaje y generar respuesta inteligente
+    response = process_whatsapp_message(text, sender)
+   
+    # Enviar respuesta
+    send_whatsapp_message(sender, response)
 
     return "ok", 200
 
@@ -199,21 +178,28 @@ def process_whatsapp_message(message, from_number):
     
     # Intentar usar RAG para responder preguntas
     else:
-        try:
-            chunks = retrieve_bm25(message, top_k=3)
-            if chunks:
-                context = make_context(chunks, max_chars=1500)
-                prompt = build_prompt(message, context)
-                respuesta = call_llm(prompt)
-                return f"🤖 {respuesta}"
+        try: 
+            ask_n8n = os.getenv("N8N_WEBHOOK_ASK")
+            if not ask_n8n:
+                return "❌ No está configurado el webhook de n8n para procesar preguntas."
+            payload = {
+                "message": message,
+                "from_number": from_number
+            }
+            r = requests.post(ask_n8n, json=payload, timeout=15)
+            if r.status_code == 200:
+                resp_json = r.json()
+                answer = resp_json.get("answer")
+                if answer:
+                    return answer
+                else:
+                    return "❌ No se recibió una respuesta válida del sistema."
             else:
-                return ("🤖 He recibido tu mensaje. " +
-                       "Actualmente no tengo documentos cargados para consultar. " +
-                       "Puedes subir documentos PDF en la interfaz web.")
+                return f"❌ Error al procesar la pregunta (status {r.status_code})."
         except Exception as e:
-            print(f"Error en RAG: {e}")
-            return f"🤖 Recibí: '{message}'. Estoy procesando tu consulta..."
-
+            return f"❌ Excepción al procesar la pregunta: {e}"
+        
+    
 # =============================================================================
 # ENDPOINTS DE PRUEBA Y DIAGNÓSTICO
 # =============================================================================
