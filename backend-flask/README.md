@@ -48,6 +48,4 @@ poetry run python app.py
 
 Autenticación admin
 
-Persistencia en SQLite
-
 Webhooks retry-safe

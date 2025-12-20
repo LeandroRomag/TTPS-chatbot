@@ -91,34 +91,3 @@ def get_available_flag_types() -> list[SystemFlagType]:
     existing_types = {flag.type for flag in get_all_flags()}
     return [ft for ft in SystemFlagType if ft not in existing_types]
 
-
-def get_or_create_flag(flag_type: SystemFlagType, default_enabled: bool = False) -> SystemFlag:
-    """
-    Obtiene una flag existente o la crea si no existe.
-    Útil para inicialización del sistema.
-    """
-    flag = get_flag_by_type(flag_type)
-    if not flag:
-        flag = create_flag(flag_type, default_enabled)
-    return flag
-
-
-# ============================================================
-# Shortcuts para flags comunes
-# ============================================================
-
-def is_maintenance_mode() -> bool:
-    """Verifica si el modo mantenimiento está activo."""
-    return is_flag_enabled(SystemFlagType.MAINTENANCE_MODE)
-
-
-def set_maintenance_mode(enabled: bool) -> bool:
-    """
-    Establece el modo de mantenimiento.
-    Crea la flag si no existe.
-    """
-    flag = get_or_create_flag(SystemFlagType.MAINTENANCE_MODE)
-    if flag.enabled != enabled:
-        flag.enabled = enabled
-        db.session.commit()
-    return flag.enabled

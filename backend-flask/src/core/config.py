@@ -1,8 +1,10 @@
 import os
 from dotenv import load_dotenv
-from sqlalchemy.engine import URL
 
 load_dotenv()
+
+# Calcular ruta base del proyecto (2 niveles arriba de este archivo: src/core/config.py -> raíz)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
 class Config:
@@ -12,28 +14,14 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
     
-    # Build database URL from individual components
-    DB_NAME = os.getenv('DB_NAME', 'chatbot_db')
-    DB_USER = os.getenv('DB_USER', 'postgres')
-    DB_PASSWORD = os.getenv('DB_PASSWORD', 'postgres')
-    DB_HOST = os.getenv('DB_HOST', 'localhost')
-    DB_PORT = os.getenv('DB_PORT', '5432')
+    # SQLite database configuration
+    # Ruta absoluta al archivo de base de datos
+    DB_PATH = os.path.join(BASE_DIR, os.getenv('DB_PATH', 'data/chatbot.db'))
     
     # flask-sqlalchemy-lite requires SQLALCHEMY_ENGINES dict
-    # Usamos URL.create() para manejar caracteres especiales en credenciales
-    # client_encoding='utf8' resuelve UnicodeDecodeError en Windows con locale cp1252
+    # Usamos ruta absoluta para evitar problemas con el directorio de trabajo
     SQLALCHEMY_ENGINES = {
-        'default': {
-            'url': URL.create(
-                drivername="postgresql",
-                username=os.getenv('DB_USER', 'postgres'),
-                password=os.getenv('DB_PASSWORD', 'postgres'),
-                host=os.getenv('DB_HOST', 'localhost'),
-                port=int(os.getenv('DB_PORT', '5432')),
-                database=os.getenv('DB_NAME', 'chatbot_db')
-            ),
-            'client_encoding': 'utf8'
-        }
+        'default': f'sqlite:///{DB_PATH}'
     }
 
 
