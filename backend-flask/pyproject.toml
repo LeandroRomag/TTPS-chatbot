@@ -20,7 +20,9 @@ dependencies = [
     "openai (==0.28.0)",
     "phonenumbers (>=9.0.19,<10.0.0)",
     "flask-sqlalchemy-lite (>=0.2.1,<0.3.0)",
+    "apscheduler (>=3.10.0,<4.0.0)",
 ]
+
 
 
 [build-system]

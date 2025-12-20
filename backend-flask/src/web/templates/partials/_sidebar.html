@@ -46,12 +46,13 @@
             </a>
         </li>
         <li class="nav-item">
-            <a href="#"
-                class="nav-link d-flex align-items-center gap-2 px-3 py-2 {% if active_page == 'estado' %}active{% endif %}">
-                <i class="bi bi-grid-fill"></i>
-                <span>Estado del sistema</span>
+            <a href="{{ url_for('endpoint_status.index') }}"
+                class="nav-link d-flex align-items-center gap-2 px-3 py-2 {% if active_page == 'endpoints' %}active{% endif %}">
+                <i class="bi bi-hdd-network-fill"></i>
+                <span>Estado Endpoints</span>
             </a>
         </li>
+
         <li class="nav-item">
             <a href="#"
                 class="nav-link d-flex align-items-center gap-2 px-3 py-2 {% if active_page == 'logs' %}active{% endif %}">

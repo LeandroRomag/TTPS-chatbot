@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Estado de Endpoints - Facultad de Informática{% endblock %}
+
+{% block extra_styles %}
+.status-card {
+transition: all 0.2s ease;
+}
+
+.status-card:hover {
+transform: translateY(-2px);
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.endpoint-url {
+font-family: 'Courier New', monospace;
+font-size: 0.85rem;
+background-color: #f8f9fa;
+padding: 0.25rem 0.5rem;
+border-radius: 4px;
+word-break: break-all;
+}
+
+.stats-number {
+font-size: 2.5rem;
+font-weight: 700;
+line-height: 1;
+}
+
+.response-time {
+font-weight: 500;
+}
+
+.response-time.fast { color: #198754; }
+.response-time.medium { color: #ffc107; }
+.response-time.slow { color: #dc3545; }
+
+.last-checked {
+font-size: 0.8rem;
+color: #6c757d;
+}
+
+.scheduler-info {
+font-size: 0.9rem;
+}
+{% endblock %}
+
+{% block body %}
+{% include "partials/_sidebar.html" %}
+
+<div class="d-flex flex-column flex-grow-1">
+    <!-- Main Content -->
+    <main class="main-content flex-grow-1 p-4 p-lg-5">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h2 fw-semibold text-dark mb-1">Estado de Endpoints</h1>
+                <p class="text-muted mb-0">Monitoreo de disponibilidad de APIs externas</p>
+            </div>
+            <form action="{{ url_for('endpoint_status.check_all') }}" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-primary-custom">
+                    <i class="bi bi-arrow-clockwise me-2"></i>Verificar Todos
+                </button>
+            </form>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-6 col-md-3">
+                <div class="card border-0 bg-success bg-opacity-10 h-100">
+                    <div class="card-body text-center py-3">
+                        <div class="stats-number text-success">{{ summary.healthy }}</div>
+                        <div class="text-muted small">Saludables</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 bg-warning bg-opacity-10 h-100">
+                    <div class="card-body text-center py-3">
+                        <div class="stats-number text-warning">{{ summary.degraded }}</div>
+                        <div class="text-muted small">Degradados</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 bg-danger bg-opacity-10 h-100">
+                    <div class="card-body text-center py-3">
+                        <div class="stats-number text-danger">{{ summary.unhealthy }}</div>
+                        <div class="text-muted small">No Saludables</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="card border-0 bg-secondary bg-opacity-10 h-100">
+                    <div class="card-body text-center py-3">
+                        <div class="stats-number text-secondary">{{ summary.unreachable }}</div>
+                        <div class="text-muted small">Sin Alcanzar</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scheduler Info -->
+        <div class="card border mb-4">
+            <div class="card-body py-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="scheduler-info">
+                        <i class="bi bi-clock-history me-2 text-primary-custom"></i>
+                        <strong>Próxima verificación automática:</strong> {{ next_check }}
+                    </div>
+                    <div>
+                        {% if scheduler_running %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Scheduler Activo</span>
+                        {% else %}
+                        <span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>Scheduler Inactivo</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Endpoints List -->
+        <div class="row g-3">
+            {% for endpoint in endpoints %}
+            <div class="col-12 col-lg-6">
+                <div class="card status-card border h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="card-title mb-1">
+                                    {{ endpoint.status_emoji }} {{ endpoint.name }}
+                                </h5>
+                                {% if endpoint.description %}
+                                <p class="text-muted small mb-0">{{ endpoint.description }}</p>
+                                {% endif %}
+                            </div>
+                            <span class="badge {{ endpoint.status_badge_class }}">
+                                {{ endpoint.status.value | upper }}
+                            </span>
+                        </div>
+
+                        <div class="endpoint-url mb-3">
+                            {{ endpoint.url }}
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-4">
+                                <div class="text-muted small">Código HTTP</div>
+                                <div class="fw-semibold">
+                                    {% if endpoint.status_code %}
+                                    {{ endpoint.status_code }}
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted small">Tiempo</div>
+                                <div
+                                    class="response-time {% if endpoint.response_time_ms %}{% if endpoint.response_time_ms < 1000 %}fast{% elif endpoint.response_time_ms < 3000 %}medium{% else %}slow{% endif %}{% endif %}">
+                                    {% if endpoint.response_time_ms %}
+                                    {{ endpoint.response_time_ms }}ms
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="text-muted small">Tipo</div>
+                                <div class="fw-semibold small">
+                                    {% if endpoint.endpoint_type.value == 'gestion_docente' %}
+                                    <span class="badge bg-info">Gestión</span>
+                                    {% else %}
+                                    <span class="badge bg-purple" style="background-color: #6f42c1;">Académico</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if endpoint.error_message %}
+                        <div class="alert alert-danger py-2 mb-3 small">
+                            <i class="bi bi-exclamation-triangle me-1"></i>
+                            {{ endpoint.error_message }}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="last-checked">
+                                {% if endpoint.last_checked %}
+                                Última verificación: {{ endpoint.last_checked.strftime('%d/%m/%Y %H:%M') }}
+                                {% else %}
+                                Nunca verificado
+                                {% endif %}
+                            </div>
+                            <form action="{{ url_for('endpoint_status.manual_check', endpoint_id=endpoint.id) }}"
+                                method="POST" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-primary" title="Verificar">
+                                    <i class="bi bi-arrow-clockwise"></i> Verificar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <div class="col-12">
+                <div class="card border">
+                    <div class="card-body text-center py-5">
+                        <i class="bi bi-inbox display-4 text-muted mb-3"></i>
+                        <p class="text-muted mb-0">No hay endpoints configurados para monitorear.</p>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+    </main>
+</div>
+{% endblock %}
