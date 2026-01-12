@@ -19,15 +19,141 @@ from dotenv import load_dotenv
 from rag import add_pdf_file, retrieve_bm25, make_context, analyze_pdf_in_memory
 from llm import build_prompt, call_llm
 from utils.phone_utils import normalize_phone 
-
+import re
+from html import unescape 
 # Cargar variables de entorno
 load_dotenv()
 
 app = Flask(__name__)
 
+ENDPOINTS = {
+    "timeline": {
+        "url": "https://gestiondocente.info.unlp.edu.ar/api/v2/timeline.json",
+        "keywords": ["noticia", "evento", "extension", "vencimiento"]
+    },
+    "calendario": {
+        "url": "https://gestionapp.info.unlp.edu.ar/api/CALENDARIO_ACADEMICO",
+        "keywords": ["fecha", "calendario", "cuando", "cronograma"]
+    },
+    "materias" : {
+        "url": "https://gestiondocente.info.unlp.edu.ar/api/v2/materias.json",
+        "keywords": ["materia", "carrera", "curso", "asignatura"]
+    },
+    "estado" : {
+        "url" : "https://gestiondocente.info.unlp.edu.ar/reservas/api/consulta/estadoactual",
+        "keywords": ["estado", "situacion", "condicion"]
+    },
+    "planes" : {
+        "url" : "https://gestionapp.info.unlp.edu.ar/api/PLANES_ESTUDIOS",
+        "keywords": ["plan de estudios", "plan", "carrera"],
+    }
+
+
+
+}
 
 print(f"🔧 Configuración WhatsApp: TOKEN={'✅' if os.getenv("WHATSAPP_TOKEN") else '❌'}, PHONE_ID={'✅' if os.getenv("PHONE_NUMBER_ID") else '❌'}")
 
+def clean_html(text):
+    text = re.sub(r"<[^>]+>", "", text)  # elimina tags
+    text = unescape(text)                # &aacute; → á
+    text = re.sub(r"\s+", " ", text)     # espacios raros
+    return text.strip() 
+
+def select_endpoints(question):
+    q = question.lower()
+    selected = []
+
+    for cfg in ENDPOINTS.values():
+        if any(k in q for k in cfg["keywords"]):
+            selected.append(cfg["url"])
+
+    return selected[:2]  # 🔥 límite duro
+
+def fetch_dynamic_context(question):
+    urls = select_endpoints(question)
+    context_blocks = []
+
+    for url in urls:
+        try:
+            r = requests.get(url, timeout=5)
+            data = r.json()
+            text = ""
+
+            if "timeline" in url:
+                text = extract_timeline_text(data, question)
+
+            elif "CALENDARIO_ACADEMICO" in url:
+                text = extract_calendar_text(data, question)
+
+            elif "materias" in url:
+                text = extract_materias_text(data, question)
+
+            elif "estadoactual" in url:
+                text = extract_estado_text(data, question)
+
+            elif "PLANES_ESTUDIOS" in url:
+                text = extract_planes_text(data, question)
+
+            if text:
+                context_blocks.append(text)
+
+        except Exception as e:
+            print("⚠ Error fetch:", e)
+
+    return "\n".join(context_blocks)
+
+
+def extract_planes_text(data, question): 
+    pass
+def extract_estado_text(data, question):
+    pass
+def extract_materias_text(data, question):
+    pass
+
+def extract_calendar_text(data, question):
+    results = []
+    q = question.lower()
+
+    try:
+        for item in data:  # 👈 data es una lista
+            nombre = item.get("nombre", "")
+            contenido = clean_html(item.get("contenido", ""))
+            texto = contenido.lower()
+
+            # keywords relevantes reales
+            keywords = ["inscripcion", "examen", "final", "cursada", "semestre", "feriado", "vacaciones", "inicio", "fin", "clases", "fecha"]
+
+            if any(k in q for k in keywords) and any(k in texto for k in keywords):
+                results.append(
+                    f"📘 {nombre}\n{contenido}"
+                )
+
+    except Exception as e:
+        print("⚠ Error calendario:", e)
+
+    return "\n".join(results[:2])  # 🔥 límite duro
+        
+
+def extract_timeline_text(data, question):
+    results = []
+    q = question.lower()
+
+    try:
+        eventos = data["_embedded"]["content"]
+        for e in eventos:
+            n = e["_embedded"]["noticia"]
+            texto = f"{n['titulo']} {n['cuerpo']}".lower()
+
+            if any(k in texto for k in q.split()):
+                results.append(
+                    f"- {n['fecha']}: {clean_html(n['titulo'])}\n{clean_html(n['cuerpo'])}"
+                )
+
+    except Exception as e:
+        print("⚠ Error timeline:", e)
+
+    return "\n".join(results[:3])
 # =============================================================================
 # WEBHOOK PRINCIPAL
 # =============================================================================
@@ -176,27 +302,30 @@ def process_whatsapp_message(message, from_number):
     
     # Intentar usar RAG para responder preguntas
     else:
-        try: 
+        try:
             ask_n8n = os.getenv("N8N_WEBHOOK_ASK")
             if not ask_n8n:
-                return "❌ No está configurado el webhook de n8n para procesar preguntas."
+                return "❌ No está configurado el webhook de n8n."
+
+            # 🔥 NUEVO
+            dynamic_context = fetch_dynamic_context(message)
+
             payload = {
                 "message": message,
-                "from_number": from_number
-            }
-            r = requests.post(ask_n8n, json=payload, timeout=15)
+                "from_number": from_number,
+                "dynamic_context": dynamic_context
+           }
+
+            r = requests.post(ask_n8n, json=payload, timeout=60)
+
             if r.status_code == 200:
                 resp_json = r.json()
-                answer = resp_json.get("answer")
-                if answer:
-                    return answer
-                else:
-                    return "❌ No se recibió una respuesta válida del sistema."
+                return resp_json.get("answer", "❌ Respuesta vacía.")
             else:
-                return f"❌ Error al procesar la pregunta (status {r.status_code})."
+                return f"❌ Error al procesar la pregunta ({r.status_code})."
+
         except Exception as e:
             return f"❌ Excepción al procesar la pregunta: {e}"
-        
     
 # =============================================================================
 # ENDPOINTS DE PRUEBA Y DIAGNÓSTICO
