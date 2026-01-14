@@ -1,0 +1,342 @@
+{
+  "name": "chatbot_unlp",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "docs",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "88702d6c-e38f-43f7-a31b-2b4308fd44ca",
+      "name": "Qdrant Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [
+        -368,
+        -256
+      ],
+      "credentials": {
+        "qdrantApi": {
+          "id": "orvYD57UEhn3rslV",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "id": "ac163c17-72e5-4827-8f49-e9260f7d109c",
+      "name": "Embeddings Ollama",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        -64
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "fbBe9ycnYAZrWef1",
+          "name": "Ollama account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "a35d90b9-20df-452e-b512-0eed64ff4f95",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "id": "a05406b2-b29e-4aa0-8326-d412fe568003",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Add documents to semantic database",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Add PDF file",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -640,
+        -256
+      ],
+      "id": "0755522b-b85b-4133-b8a5-b4d3cb0e43aa",
+      "name": "On form submission1",
+      "webhookId": "fa087950-57c2-44df-9542-e91970ad8fbe"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatbot-unlp",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "97403831-96a5-4035-9e52-8493a92d8d22",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        -240
+      ],
+      "webhookId": "chatbot-unlp"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {}
+      },
+      "id": "dbb0bf68-bef6-4d0a-8293-dcbf8cc431d2",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        544,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "id": "2aceda6b-db1b-4643-ac55-5a156486f364",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        400,
+        -32
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "j7DYjXKRnWOtU9b6",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Use this for answering questiong about the study plan for the dregee of system analyst",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "docs",
+          "mode": "list",
+          "cachedResultName": "docs"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        16
+      ],
+      "id": "b9916231-26c5-4fab-9ade-db80df3d1661",
+      "name": "Qdrant Vector Store1",
+      "credentials": {
+        "qdrantApi": {
+          "id": "orvYD57UEhn3rslV",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "548e8b54-6306-492c-a9b6-8be0f66a4209",
+              "name": "answer",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        -240
+      ],
+      "id": "3b004770-66e5-4b5d-846e-8b90fcdc3541",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "content": "## RAG Chatbot\n\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 576,
+        "width": 1104,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        224,
+        -336
+      ],
+      "typeVersion": 1,
+      "id": "9afc5ec1-4d34-4ffd-8144-3d77482d06a5",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## PDF Ingestion Process\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 576,
+        "width": 864,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -720,
+        -336
+      ],
+      "typeVersion": 1,
+      "id": "f6f5c857-1d59-49ba-9981-ce2a59bdca02",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "Qdrant Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission1": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a571b523-3d07-4778-abb7-576ef66584c2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f358e53cbd5f286e4150c47a0fc9337c41fc816f7a095fa82524eb366708164c"
+  },
+  "id": "ie6YO4ge2Xzz1AUN",
+  "tags": []
+}
