@@ -1,4 +1,5 @@
 version: "3.9"
+
 services:
   n8n:
     image: n8nio/n8n:latest
@@ -13,3 +14,32 @@ services:
       - N8N_PORT=5678
     volumes:
       - ./data:/home/node/.n8n
+    networks:
+      - unlp_network
+    depends_on:
+      - qdrant
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./qdrant_data:/qdrant/storage:z
+    networks:
+      - unlp_network
+      
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./ollama_data:/root/.ollama
+    networks:
+      - unlp_network
+
+networks:
+  unlp_network:
+    driver: bridge
