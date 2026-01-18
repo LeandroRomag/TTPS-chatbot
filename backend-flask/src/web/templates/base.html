@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: #7a4a32;
+            color: #fff;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            padding: 1rem;
+        }
+
+        .sidebar a {
+            color: #fff;
+            text-decoration: none;
+        }
+
+        .sidebar .nav-link {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+        }
+
+        .sidebar .nav-link.active,
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .main-content {
+            margin-left: 260px;
+            padding: 2rem;
+            width: 100%;
+            background-color: #f8f9fa;
+        }
+    </style>
+
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar d-flex flex-column justify-content-between">
+    <div>
+        <div class="mb-4 fw-bold">
+            FACULTAD DE<br>INFORMÁTICA
+        </div>
+
+        <ul class="nav flex-column gap-1">
+            <li>
+                <a class="nav-link {% if active_page == 'inicio' %}active{% endif %}"
+                   href="{{ url_for('user.index') }}">
+                    <i class="bi bi-house me-2"></i> Inicio
+                </a>
+            </li>
+
+            <li>
+                <a class="nav-link {% if active_page == 'usuarios' %}active{% endif %}"
+                   href="{{ url_for('user.index') }}">
+                    <i class="bi bi-people me-2"></i> Administradores
+                </a>
+            </li>
+
+            <li>
+                <a class="nav-link {% if active_page == 'documentos' %}active{% endif %}"
+                   href="{{ url_for('document.index') }}">
+                    <i class="bi bi-file-earmark-text me-2"></i> Documentos
+                </a>
+            </li>
+
+            <li>
+                <a class="nav-link" href="{{ url_for('system.pause') }}">
+                    <i class="bi bi-pause-circle me-2"></i> Pausa del sistema
+                </a>
+            </li>
+
+            <li>
+                <a class="nav-link" href="{{ url_for('status.index') }}">
+                    <i class="bi bi-activity me-2"></i> Estado del sistema
+                </a>
+            </li>
+
+            <li>
+                <a class="nav-link">
+                    <i class="bi bi-journal-text me-2"></i> Logs
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div>
+        <a class="nav-link" href="{{ url_for('authentication.logout') }}">
+            <i class="bi bi-box-arrow-right me-2"></i> Cerrar sesión
+        </a>
+    </div>
+</aside>
+
+<!-- Main -->
+<main class="main-content">
+    {% block body %}{% endblock %}
+</main>
+
+</body>
+</html>

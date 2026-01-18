@@ -1,0 +1,71 @@
+<!-- Sidebar -->
+<nav class="sidebar position-fixed top-0 start-0 min-vh-100 d-flex flex-column">
+    <!-- Header -->
+    <div class="p-3 border-bottom border-light border-opacity-10">
+        <a href="{{ url_for('authentication.dashboard') }}"
+            class="d-flex align-items-center gap-2 text-decoration-none">
+            <div class="rounded-circle bg-white bg-opacity-10 d-flex align-items-center justify-content-center"
+                style="width: 40px; height: 40px;">
+                <i class="bi bi-gear-fill text-white fs-5"></i>
+            </div>
+            <div class="sidebar-brand-text text-white">
+                <small class="d-block text-uppercase fw-bold">Facultad de</small>
+                <span class="fw-medium">Informática</span>
+            </div>
+        </a>
+    </div>
+
+    <!-- Navigation -->
+    <ul class="nav flex-column py-3">
+        <li class="nav-item">
+            <a href="{{ url_for('authentication.dashboard') }}"
+                class="nav-link d-flex align-items-center gap-2 px-3 py-2 {% if active_page == 'inicio' %}active{% endif %}">
+                <i class="bi bi-house-fill"></i>
+                <span>Inicio</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ url_for('user.index') }}"
+                class="nav-link d-flex align-items-center gap-2 px-3 py-2 {% if active_page == 'usuarios' %}active{% endif %}">
+                <i class="bi bi-people-fill"></i>
+                <span>Usuarios</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="{{ url_for('document.index') }}"
+                class="nav-link d-flex align-items-center gap-2 px-3 py-2 {% if active_page == 'documentos' %}active{% endif %}">
+                <i class="bi bi-file-earmark-text-fill"></i>
+                <span>Documentos</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#"
+                class="nav-link d-flex align-items-center gap-2 px-3 py-2 {% if active_page == 'pausa' %}active{% endif %}">
+                <i class="bi bi-pause-circle-fill"></i>
+                <span>Pausa del sistema</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#"
+                class="nav-link d-flex align-items-center gap-2 px-3 py-2 {% if active_page == 'estado' %}active{% endif %}">
+                <i class="bi bi-grid-fill"></i>
+                <span>Estado del sistema</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a href="#"
+                class="nav-link d-flex align-items-center gap-2 px-3 py-2 {% if active_page == 'logs' %}active{% endif %}">
+                <i class="bi bi-list-ul"></i>
+                <span>Logs</span>
+            </a>
+        </li>
+    </ul>
+
+    <!-- Logout at bottom -->
+    <div class="mt-auto p-3 border-top border-light border-opacity-10">
+        <a href="{{ url_for('authentication.logout') }}" class="nav-link d-flex align-items-center gap-2 px-3 py-2">
+            <i class="bi bi-box-arrow-left"></i>
+            <span>Cerrar sesión</span>
+        </a>
+    </div>
+</nav>
