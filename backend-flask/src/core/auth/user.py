@@ -4,6 +4,7 @@ from src.core.database import Base
 from sqlalchemy import String, Enum, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
+from werkzeug.security import check_password_hash
 
 if TYPE_CHECKING:
     from src.core.board.document import Document
@@ -57,6 +58,13 @@ class User(Base):
     def is_admin(self):
         """Usa el campo role de la BD."""
         return self.role == UserRole.ADMIN
+    
+    def check_password(self, password):
+        """
+        Compara la contraseña en texto plano recibida con el hash guardado en la DB.
+        Devuelve True si coinciden.
+        """
+        return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
         return f'<User {self.email} ({self.role})>'

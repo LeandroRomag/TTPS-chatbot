@@ -1,9 +1,14 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from src.core.auth.user import User, UserRole
 from src.core.database import db
+# Ajusta esta importación a la ruta real de tu archivo de autenticación
+from src.web.controllers.auth_controller import login_required 
+from werkzeug.security import generate_password_hash
 
 user_blueprint = Blueprint("user", __name__, url_prefix="/user")
+
 @user_blueprint.get("/")
+@login_required  # <--- RUTA PROTEGIDA
 def index():
     admins = (
         db.session.query(User)
@@ -18,8 +23,8 @@ def index():
         active_page="usuarios"
     )
 
-
 @user_blueprint.post("/<int:user_id>/delete")
+@login_required  # <--- RUTA PROTEGIDA
 def delete(user_id):
     user = db.session.get(User, user_id)
 
@@ -33,12 +38,13 @@ def delete(user_id):
     flash("Administrador eliminado", "success")
     return redirect(url_for("user.index"))
 
-
 @user_blueprint.get("/create")
+@login_required  # <--- RUTA PROTEGIDA
 def create():
     return render_template("user/create.html", active_page='usuarios')
 
 @user_blueprint.post("/create")
+@login_required  # <--- RUTA PROTEGIDA
 def create_post():
     nombre = request.form.get("nombre")
     apellido = request.form.get("apellido")
