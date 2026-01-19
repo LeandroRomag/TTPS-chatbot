@@ -49,3 +49,32 @@ def webhook_whatsapp():
     except Exception as e:
         print(f"❌ Error en webhook: {e}")
         return "error", 500
+    
+"""@whatsapp_blueprint.route("/api/chat", methods=["POST"])
+def api_chat():
+    """
+"""
+    Endpoint directo para n8n o pruebas locales.
+    Recibe JSON: { "message": "Hola" }
+    Devuelve JSON: { "response": "Respuesta del bot..." }
+    """
+"""
+    try:
+        data = request.get_json(force=True)
+        user_message = data.get("message", "")
+        
+        if not user_message:
+            return jsonify({"response": "⚠️ Mensaje vacío"}), 400
+
+        print(f"💬 Chat API recibido: {user_message}")
+
+        # REUTILIZAMOS TU LÓGICA DE IA (La misma de WhatsApp)
+        # Usamos un ID ficticio "api-user"
+        bot_response = process_whatsapp_message(user_message, "api-user")
+
+        return jsonify({"response": bot_response})
+        
+    except Exception as e:
+        print(f"❌ Error en API Chat: {e}")
+        return jsonify({"error": str(e)}), 500 
+        """
