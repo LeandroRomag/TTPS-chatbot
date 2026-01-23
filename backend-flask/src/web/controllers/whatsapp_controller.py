@@ -50,15 +50,14 @@ def webhook_whatsapp():
         print(f"❌ Error en webhook: {e}")
         return "error", 500
     
-"""@whatsapp_blueprint.route("/api/chat", methods=["POST"])
+@whatsapp_blueprint.route("/api/chat", methods=["POST"])
 def api_chat():
     """
-"""
     Endpoint directo para n8n o pruebas locales.
     Recibe JSON: { "message": "Hola" }
     Devuelve JSON: { "response": "Respuesta del bot..." }
     """
-"""
+
     try:
         data = request.get_json(force=True)
         user_message = data.get("message", "")
@@ -76,5 +75,4 @@ def api_chat():
         
     except Exception as e:
         print(f"❌ Error en API Chat: {e}")
-        return jsonify({"error": str(e)}), 500 
-        """
+        return jsonify({"error": str(e)}), 500
