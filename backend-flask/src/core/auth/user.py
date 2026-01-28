@@ -4,6 +4,7 @@ from src.core.database import Base
 from sqlalchemy import String, Enum, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime, timezone
+from werkzeug.security import generate_password_hash, check_password_hash
 
 if TYPE_CHECKING:
     from src.core.board.document import Document
@@ -81,6 +82,21 @@ class User(Base):
     def full_name(self) -> str:
         """Retorna el nombre completo del usuario."""
         return f"{self.nombre} {self.apellido}"
+
+    # Password Methods
+    def set_password(self, password: str) -> None:
+        """
+        Hashea y almacena la contraseña del usuario.
+        Usa werkzeug.security con el algoritmo PBKDF2.
+        """
+        self.password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+    
+    def check_password(self, password: str) -> bool:
+        """
+        Verifica si la contraseña proporcionada coincide con el hash almacenado.
+        Retorna True si la contraseña es correcta, False en caso contrario.
+        """
+        return check_password_hash(self.password_hash, password)
 
     def __repr__(self):
         status = "deleted" if self.is_deleted else ("active" if self.active else "inactive")

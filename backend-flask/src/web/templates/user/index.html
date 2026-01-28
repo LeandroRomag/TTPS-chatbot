@@ -16,11 +16,228 @@
             </a>
         </div>
 
-        <!-- TODO: Implementar boton para agregar nuevo usuario (administrador) -->
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-4" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-        <!-- TODO: Implementar tabla de usuarios -->
+        <!-- Tabla de Usuarios -->
+        {% if users %}
+        <div class="table-responsive">
+            <table class="table table-hover table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Nombre</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Rol</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Admin Sistema</th>
+                        <th scope="col">Creado</th>
+                        <th scope="col">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>
+                            <span class="fw-semibold">{{ user.full_name }}</span>
+                        </td>
+                        <td>
+                            <code class="small">{{ user.email }}</code>
+                        </td>
+                        <td>
+                            <span class="badge bg-primary-custom">{{ user.role.value }}</span>
+                        </td>
+                        <td>
+                            {% if user.active %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-check-circle"></i> Activo
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-x-circle"></i> Inactivo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user.is_sysadmin %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-shield-check"></i> Sí
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-dark">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ user.created_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary btn-sm" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" title="Cambiar contraseña">
+                                    <i class="bi bi-key"></i>
+                                </button>
+                                {% if not user.is_sysadmin %}
+                                <button type="button" class="btn btn-outline-danger btn-sm delete-user-btn" 
+                                        data-user-id="{{ user.id }}" data-user-name="{{ user.full_name }}"
+                                        title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn btn-outline-danger btn-sm" disabled title="No se puede eliminar al superadmin">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Resumen -->
+        <div class="mt-4 p-3 bg-light rounded">
+            <p class="text-muted mb-0">
+                <strong>Total:</strong> {{ users|length }} usuario{{ 's' if users|length != 1 else '' }}
+            </p>
+        </div>
+
+        {% else %}
+        <!-- Sin usuarios -->
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle me-2"></i>
+            No hay usuarios registrados. 
+            <a href="{{ url_for('user.create') }}" class="alert-link">Crea uno ahora</a>
+        </div>
+        {% endif %}
 
     </main>
 
 </div>
+
+<!-- Modal de Confirmación para Eliminar -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger bg-opacity-10">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+                    Eliminar Usuario
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar al usuario <strong id="deleteUserName"></strong>?</p>
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Esta acción es irreversible. El usuario no podrá acceder al sistema.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+                    <i class="bi bi-trash me-2"></i>Eliminar Usuario
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let userToDelete = null;
+
+// Detectar click en botón de eliminar
+document.querySelectorAll('.delete-user-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        userToDelete = {
+            id: this.dataset.userId,
+            name: this.dataset.userName
+        };
+        document.getElementById('deleteUserName').textContent = userToDelete.name;
+        const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+        modal.show();
+    });
+});
+
+// Confirmar eliminación
+document.getElementById('confirmDeleteBtn').addEventListener('click', async function() {
+    if (!userToDelete) return;
+    
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Eliminando...';
+    
+    try {
+        const response = await fetch(`/user/${userToDelete.id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        // Cerrar el modal
+        bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
+        
+        if (response.ok) {
+            // Mostrar mensaje de éxito
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-success alert-dismissible fade show';
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                <i class="bi bi-check-circle me-2"></i>
+                ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('main');
+            container.insertBefore(alertDiv, container.firstChild);
+            
+            // Recargar la página después de 1.5 segundos
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        } else {
+            // Mostrar mensaje de error
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.role = 'alert';
+            alertDiv.innerHTML = `
+                <i class="bi bi-exclamation-circle me-2"></i>
+                ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('main');
+            container.insertBefore(alertDiv, container.firstChild);
+        }
+    } catch (error) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            <i class="bi bi-exclamation-circle me-2"></i>
+            Error: ${error.message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('main');
+        container.insertBefore(alertDiv, container.firstChild);
+    } finally {
+        this.disabled = false;
+        this.innerHTML = '<i class="bi bi-trash me-2"></i>Eliminar Usuario';
+    }
+});
+</script>
+
 {% endblock %}

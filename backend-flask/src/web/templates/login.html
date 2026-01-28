@@ -9,9 +9,21 @@
 <div class="login-container">
     <div class="login-box">
 
-        <h2 class="login-title">Iniciar Sesion</h2>
+        <h2 class="login-title">Iniciar Sesión</h2>
 
-        <form method="POST" action="{{ url_for('authentication.login') }}">
+        <!-- Flash messages (success/error/warning) -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Login form -->
+        <form method="POST" action="{{ url_for('authentication.login') }}" class="login-form">
 
             <input 
                 type="email" 
@@ -19,6 +31,7 @@
                 placeholder="Correo electronico" 
                 class="login-input"
                 required
+                autofocus
             >
 
             <input 
@@ -32,6 +45,7 @@
             <button type="submit" class="login-btn">Ingresar</button>
         </form>
 
+        <!-- Legacy error display (deprecated, kept for compatibility) -->
         {% if error %}
         <div class="error-msg">
             {{ error }}

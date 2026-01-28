@@ -9,31 +9,306 @@
 
     <!-- Main Content -->
     <main class="main-content flex-grow-1 p-4 p-lg-5">
-        <h1 class="h2 fw-semibold text-dark mb-4">Crear Usuario</h1>
+        <div class="mb-4">
+            <a href="{{ url_for('user.index') }}" class="btn btn-secondary-custom btn-sm mb-3">
+                <i class="bi bi-arrow-left me-2"></i>Volver a Usuarios
+            </a>
+            <h1 class="h2 fw-semibold text-dark mb-0">Crear Nuevo Usuario</h1>
+        </div>
 
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-4" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Formulario de Registro -->
         <div class="row">
-            <div class="col-lg-6 col-xl-5">
-                <div class="card border">
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm">
                     <div class="card-body p-4">
+                        <form method="POST" action="{{ url_for('user.create_post') }}" class="needs-validation" novalidate>
+                            
+                            <!-- Nombre -->
+                            <div class="mb-3">
+                                <label for="firstName" class="form-label fw-semibold text-dark">
+                                    Nombre <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control form-control-lg" id="firstName" 
+                                       name="nombre" placeholder="Ej: Juan" required
+                                       minlength="2" maxlength="50">
+                                <small class="text-muted">Mínimo 2 caracteres</small>
+                            </div>
 
-                        <!-- TODO: Implementar form para creación de usuario, luego implementar lógica de edición -->
+                            <!-- Apellido -->
+                            <div class="mb-3">
+                                <label for="lastName" class="form-label fw-semibold text-dark">
+                                    Apellido <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control form-control-lg" id="lastName" 
+                                       name="apellido" placeholder="Ej: Pérez" required
+                                       minlength="2" maxlength="50">
+                                <small class="text-muted">Mínimo 2 caracteres</small>
+                            </div>
 
-                        {% if success %}
-                        <div class="alert alert-success mt-3 mb-0 small" role="alert">
-                            <i class="bi bi-check-circle me-2"></i>{{ success }}
+                            <!-- Email -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label fw-semibold text-dark">
+                                    Email <span class="text-danger">*</span>
+                                </label>
+                                <input type="email" class="form-control form-control-lg" id="email" 
+                                       name="email" placeholder="usuario@ejemplo.com" required>
+                                <small class="text-muted">Debe ser un email válido</small>
+                            </div>
+
+                            <!-- Contraseña -->
+                            <div class="mb-3">
+                                <label for="password" class="form-label fw-semibold text-dark">
+                                    Contraseña <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control form-control-lg" id="password" 
+                                           name="password" placeholder="Ingresa una contraseña segura" required
+                                           minlength="8">
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-2">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Requisitos: mínimo 8 caracteres, una mayúscula, una minúscula y un número
+                                </small>
+                                
+                                <!-- Password Strength Indicator -->
+                                <div class="mt-2" id="passwordStrengthContainer" style="display:none;">
+                                    <div class="progress" style="height: 4px;">
+                                        <div id="passwordStrength" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                                    </div>
+                                    <small id="passwordStrengthText" class="text-muted"></small>
+                                </div>
+                            </div>
+
+                            <!-- Confirmar Contraseña -->
+                            <div class="mb-4">
+                                <label for="confirmPassword" class="form-label fw-semibold text-dark">
+                                    Confirmar Contraseña <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control form-control-lg" id="confirmPassword" 
+                                           name="confirm_password" placeholder="Repite la contraseña" required>
+                                    <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="text-muted d-block mt-2" id="passwordMatchText"></small>
+                            </div>
+
+                            <!-- Botones -->
+                            <div class="d-grid gap-2 d-sm-flex justify-content-sm-end">
+                                <a href="{{ url_for('user.index') }}" class="btn btn-outline-secondary btn-lg">
+                                    Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-primary-custom btn-lg">
+                                    <i class="bi bi-person-check me-2"></i>Crear Usuario
+                                </button>
+                            </div>
+
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información de Requisitos -->
+            <div class="col-md-4 mt-4 mt-md-0">
+                <div class="card border-0 shadow-sm bg-light">
+                    <div class="card-body">
+                        <h5 class="card-title fw-semibold text-dark mb-3">
+                            <i class="bi bi-shield-check text-success me-2"></i>Requisitos de Contraseña
+                        </h5>
+                        <div id="passwordRequirements">
+                            <div class="mb-2">
+                                <i class="bi bi-dash text-muted me-2"></i>
+                                <span id="reqLength">Mínimo 8 caracteres</span>
+                            </div>
+                            <div class="mb-2">
+                                <i class="bi bi-dash text-muted me-2"></i>
+                                <span id="reqUpper">Una letra mayúscula (A-Z)</span>
+                            </div>
+                            <div class="mb-2">
+                                <i class="bi bi-dash text-muted me-2"></i>
+                                <span id="reqLower">Una letra minúscula (a-z)</span>
+                            </div>
+                            <div class="mb-2">
+                                <i class="bi bi-dash text-muted me-2"></i>
+                                <span id="reqDigit">Un número (0-9)</span>
+                            </div>
                         </div>
-                        {% endif %}
-
-                        {% if error %}
-                        <div class="alert alert-danger mt-3 mb-0 small" role="alert">
-                            <i class="bi bi-exclamation-circle me-2"></i>{{ error }}
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
+
     </main>
 
 </div>
+
+<script>
+// Toggle password visibility
+document.getElementById('togglePassword').addEventListener('click', function() {
+    const passwordInput = document.getElementById('password');
+    const icon = this.querySelector('i');
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+});
+
+document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
+    const confirmInput = document.getElementById('confirmPassword');
+    const icon = this.querySelector('i');
+    if (confirmInput.type === 'password') {
+        confirmInput.type = 'text';
+        icon.classList.remove('bi-eye');
+        icon.classList.add('bi-eye-slash');
+    } else {
+        confirmInput.type = 'password';
+        icon.classList.remove('bi-eye-slash');
+        icon.classList.add('bi-eye');
+    }
+});
+
+// Password strength checker
+const passwordInput = document.getElementById('password');
+const confirmPasswordInput = document.getElementById('confirmPassword');
+const passwordStrengthContainer = document.getElementById('passwordStrengthContainer');
+const passwordStrength = document.getElementById('passwordStrength');
+const passwordStrengthText = document.getElementById('passwordStrengthText');
+const passwordMatchText = document.getElementById('passwordMatchText');
+
+function checkPasswordStrength(password) {
+    let strength = 0;
+    const requirements = {
+        length: password.length >= 8,
+        upper: /[A-Z]/.test(password),
+        lower: /[a-z]/.test(password),
+        digit: /\d/.test(password)
+    };
+
+    // Update requirement indicators
+    document.getElementById('reqLength').style.color = requirements.length ? '#28a745' : '#000';
+    document.getElementById('reqUpper').style.color = requirements.upper ? '#28a745' : '#000';
+    document.getElementById('reqLower').style.color = requirements.lower ? '#28a745' : '#000';
+    document.getElementById('reqDigit').style.color = requirements.digit ? '#28a745' : '#000';
+
+    // Calculate strength
+    if (requirements.length) strength += 25;
+    if (requirements.upper) strength += 25;
+    if (requirements.lower) strength += 25;
+    if (requirements.digit) strength += 25;
+
+    return strength;
+}
+
+passwordInput.addEventListener('input', function() {
+    const strength = checkPasswordStrength(this.value);
+    
+    if (this.value.length > 0) {
+        passwordStrengthContainer.style.display = 'block';
+        passwordStrength.style.width = strength + '%';
+        
+        if (strength < 50) {
+            passwordStrength.className = 'progress-bar bg-danger';
+            passwordStrengthText.textContent = 'Contraseña débil';
+            passwordStrengthText.className = 'text-danger';
+        } else if (strength < 75) {
+            passwordStrength.className = 'progress-bar bg-warning';
+            passwordStrengthText.textContent = 'Contraseña regular';
+            passwordStrengthText.className = 'text-warning';
+        } else {
+            passwordStrength.className = 'progress-bar bg-success';
+            passwordStrengthText.textContent = 'Contraseña fuerte';
+            passwordStrengthText.className = 'text-success';
+        }
+    } else {
+        passwordStrengthContainer.style.display = 'none';
+    }
+
+    // Check password match
+    checkPasswordMatch();
+});
+
+confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+
+function checkPasswordMatch() {
+    const password = passwordInput.value;
+    const confirmPassword = confirmPasswordInput.value;
+
+    if (confirmPassword.length === 0) {
+        passwordMatchText.textContent = '';
+        passwordMatchText.className = '';
+    } else if (password === confirmPassword) {
+        passwordMatchText.textContent = '✓ Las contraseñas coinciden';
+        passwordMatchText.className = 'text-success fw-semibold';
+    } else {
+        passwordMatchText.textContent = '✗ Las contraseñas no coinciden';
+        passwordMatchText.className = 'text-danger fw-semibold';
+    }
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    if (!this.checkValidity()) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    this.classList.add('was-validated');
+});
+</script>
+
+<style>
+.btn-primary-custom {
+    background-color: #6366f1;
+    border-color: #6366f1;
+    color: white;
+}
+
+.btn-primary-custom:hover {
+    background-color: #4f46e5;
+    border-color: #4f46e5;
+    color: white;
+}
+
+.btn-secondary-custom {
+    background-color: #6b7280;
+    border-color: #6b7280;
+    color: white;
+}
+
+.btn-secondary-custom:hover {
+    background-color: #4b5563;
+    border-color: #4b5563;
+    color: white;
+}
+
+.form-control:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+}
+
+.form-control-lg {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+}
+</style>
 {% endblock %}
