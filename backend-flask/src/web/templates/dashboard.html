@@ -3,47 +3,39 @@
 {% block title %}Panel Administrativo - Facultad de Informática{% endblock %}
 
 {% block body %}
-{% include "partials/_sidebar.html" %}
+<div class="container mt-4">
+    <h1 class="h2 fw-semibold text-dark mb-4">Panel Administrativo</h1>
 
-<div class="d-flex flex-column flex-grow-1">
-
-
-    <!-- Main Content -->
-    <main class="main-content flex-grow-1 p-4 p-lg-5">
-        <h1 class="h2 fw-semibold text-dark mb-4">Panel Administrativo</h1>
-
-        <div class="row g-4">
-            <!-- Card: Administradores -->
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card border card-hover h-100">
-                    <div class="card-body p-4">
-                        <h2 class="display-4 fw-bold text-dark lh-1 mb-2">{{ admin_count | default(0) }}</h2>
-                        <p class="text-muted mb-0">Administradores<br>registrados</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card: Documentación -->
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card border card-hover h-100">
-                    <div class="card-body p-4">
-                        <h2 class="display-4 fw-bold text-dark lh-1 mb-2">{{ document_count | default(0) }}</h2>
-                        <p class="text-muted mb-0">Documentación<br>cargada</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card: Estado Webhook -->
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card border card-hover h-100">
-                    <div class="card-body p-4">
-                        <h2 class="h3 fw-semibold text-dark mb-1">{{ webhook_status | default('Inactivo') }}</h2>
-                        <p class="text-primary-custom mb-0">Estado del Webhook</p>
-                    </div>
+    <div class="row g-4">
+        <!-- Card: Administradores -->
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card border card-hover h-100">
+                <div class="card-body p-4">
+                    <h2 class="display-4 fw-bold text-dark lh-1 mb-2">{{ admin_count | default(0) }}</h2>
+                    <p class="text-muted mb-0">Administradores<br>registrados</p>
                 </div>
             </div>
         </div>
-    </main>
 
+        <!-- Card: Documentación -->
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card border card-hover h-100">
+                <div class="card-body p-4">
+                    <h2 class="display-4 fw-bold text-dark lh-1 mb-2">{{ document_count | default(0) }}</h2>
+                    <p class="text-muted mb-0">Documentación<br>cargada</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card: Estado Webhook -->
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card border card-hover h-100">
+                <div class="card-body p-4">
+                    <h2 class="h3 fw-semibold text-dark mb-1">{{ webhook_status | default('Inactivo') }}</h2>
+                    <p class="text-primary-custom mb-0">Estado del Webhook</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 {% endblock %}

@@ -2,6 +2,8 @@
     --primary-color: #8B2C2C;
     --primary-hover: #a33535;
     --primary-dark: #7a2626;
+    --sidebar-width: 260px;
+    --sidebar-bg: #7a4a32;
 }
 
 /* Utilidades generales */

@@ -1,41 +1,44 @@
 /* Sidebar */
 .sidebar {
-    width: 220px;
-    background-color: var(--primary-color);
-    transition: width 0.3s ease;
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+}
+
+.sidebar a {
+    color: #fff;
+    text-decoration: none;
 }
 
 .sidebar .nav-link {
-    color: rgba(255, 255, 255, 0.85);
-    border-left: 3px solid transparent;
-    transition: all 0.2s ease;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
 }
 
+.sidebar .nav-link.active,
 .sidebar .nav-link:hover {
-    background-color: var(--primary-hover);
-    color: white;
+    background-color: rgba(255, 255, 255, 0.15);
 }
 
-.sidebar .nav-link.active {
-    background-color: var(--primary-dark);
-    color: white;
-    border-left-color: white;
-}
-
-/* Layout */
+/* Main Content */
 .main-content {
-    margin-left: 220px;
-}
-
-.top-header,
-.main-footer {
-    margin-left: 220px;
+    margin-left: var(--sidebar-width);
 }
 
 /* Cards */
 .card-hover:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: box-shadow 0.2s ease;
+}
+
+/* Form switch grande */
+.form-switch-lg .form-check-input {
+    width: 3em;
+    height: 1.5em;
+}
+
+/* Celdas con texto truncado */
+.text-truncate-cell {
+    max-width: 250px;
 }
 
 /* Responsive */
@@ -53,9 +56,7 @@
         justify-content: center;
     }
 
-    .main-content,
-    .top-header,
-    .main-footer {
+    .main-content {
         margin-left: 70px;
     }
 }

@@ -10,7 +10,10 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">{{ message }}</div>
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             {% endfor %}
         {% endif %}
     {% endwith %}
@@ -22,9 +25,8 @@
 
             <form action="{{ url_for('system.pause') }}" method="POST">
                 
-                <div class="form-check form-switch mb-4">
-                    <input class="form-check-input" type="checkbox" id="is_paused" name="is_paused" 
-                           style="width: 3em; height: 1.5em;" 
+                <div class="form-check form-switch form-switch-lg mb-4">
+                    <input class="form-check-input" type="checkbox" id="is_paused" name="is_paused"
                            {% if is_paused %}checked{% endif %}>
                     <label class="form-check-label ms-3 mt-1 fw-bold" for="is_paused">
                         {% if is_paused %}
