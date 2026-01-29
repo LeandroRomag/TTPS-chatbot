@@ -1,23 +1,32 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, jsonify, render_template
 from src.web.controllers.auth_controller import login_required
-# Importamos la función lógica que acabamos de crear en el Paso 1
-from src.core.status_service import get_system_status
-import datetime
+from src.core.services import status_service
 
 status_blueprint = Blueprint("status", __name__, url_prefix="/status")
+
 
 @status_blueprint.get("/")
 @login_required
 def index():
-    # Llamamos al servicio para obtener los datos frescos
-    services = get_system_status()
-    
-    # Obtenemos la hora actual para mostrar en el panel
-    last_check = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-
+    endpoints = status_service.get_endpoints()
     return render_template(
         "system/status.html",
-        services=services,
-        last_check=last_check,
-        active_page="estado" # Esto activa el ítem en el menú lateral
+        endpoints=endpoints,
+        active_page="estado",
     )
+
+
+@status_blueprint.get("/api/check-all")
+@login_required
+def check_all():
+    results = status_service.check_all()
+    return jsonify([r.to_dict() for r in results])
+
+
+@status_blueprint.get("/api/check/<endpoint_id>")
+@login_required
+def check_single(endpoint_id):
+    result = status_service.check_endpoint(endpoint_id)
+    if result is None:
+        return jsonify({"error": "Endpoint no encontrado"}), 404
+    return jsonify(result.to_dict())
