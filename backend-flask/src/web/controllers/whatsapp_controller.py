@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 # Importamos la lógica del archivo que acabamos de crear
 from src.core.whatsapp_service import process_whatsapp_message, send_whatsapp_message
+from src.core.config_service import get_config
 
 # Definimos el Blueprint
 whatsapp_blueprint = Blueprint('whatsapp', __name__)
@@ -38,6 +39,17 @@ def webhook_whatsapp():
 
         print(f"📩 Mensaje recibido de {sender}")
         
+        # VERIFICAR SI EL SISTEMA ESTÁ EN PAUSA
+        is_paused = get_config("maintenance_mode", "false") == "true"
+        if is_paused:
+            maintenance_message = get_config(
+                "maintenance_message", 
+                "El sistema se encuentra temporalmente suspendido por mantenimiento."
+            )
+            print(f"⏸️  Sistema en pausa - Enviando mensaje de contingencia")
+            send_whatsapp_message(sender, maintenance_message)
+            return "ok", 200
+        
         # Usamos la lógica separada
         response = process_whatsapp_message(text, sender)
         
@@ -49,3 +61,40 @@ def webhook_whatsapp():
     except Exception as e:
         print(f"❌ Error en webhook: {e}")
         return "error", 500
+    
+@whatsapp_blueprint.route("/api/chat", methods=["POST"])
+def api_chat():
+    """
+    Endpoint directo para n8n o pruebas locales.
+    Recibe JSON: { "message": "Hola" }
+    Devuelve JSON: { "response": "Respuesta del bot..." }
+    """
+
+    try:
+        data = request.get_json(force=True)
+        user_message = data.get("message", "")
+        
+        if not user_message:
+            return jsonify({"response": "⚠️ Mensaje vacío"}), 400
+
+        print(f"💬 Chat API recibido: {user_message}")
+
+        # VERIFICAR SI EL SISTEMA ESTÁ EN PAUSA
+        is_paused = get_config("maintenance_mode", "false") == "true"
+        if is_paused:
+            maintenance_message = get_config(
+                "maintenance_message", 
+                "El sistema se encuentra temporalmente suspendido por mantenimiento."
+            )
+            print(f"⏸️  Sistema en pausa - Enviando mensaje de contingencia")
+            return jsonify({"response": maintenance_message})
+
+        # REUTILIZAMOS TU LÓGICA DE IA (La misma de WhatsApp)
+        # Usamos un ID ficticio "api-user"
+        bot_response = process_whatsapp_message(user_message, "api-user")
+
+        return jsonify({"response": bot_response})
+        
+    except Exception as e:
+        print(f"❌ Error en API Chat: {e}")
+        return jsonify({"error": str(e)}), 500

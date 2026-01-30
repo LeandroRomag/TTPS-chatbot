@@ -28,7 +28,7 @@ def login_post():
         return render_template("login.html", error="Credenciales incorrectas")
 
     session["user_id"] = user.id
-    return redirect(url_for("authentication.dashboard"))
+    return redirect(url_for("status.index"))
 
 @authentication_blueprint.get("/dashboard")
 def dashboard():
