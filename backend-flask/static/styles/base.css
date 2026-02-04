@@ -1,33 +1,215 @@
 :root {
-    --primary-color: #8B2C2C;
-    --primary-hover: #a33535;
-    --primary-dark: #7a2626;
+    /* Paleta de colores Rojo Intenso / Bordó */
+    --primary-color: #8B0000;
+    --primary-hover: #A50000;
+    --primary-dark: #6B0000;
+    --primary-light: #B22222;
+
+    /* Sidebar - Bordó oscuro */
+    --sidebar-bg: #5C0000;
+    --sidebar-hover: #7A0000;
+
+    /* Dimensiones */
     --sidebar-width: 260px;
-    --sidebar-bg: #7a4a32;
+
+    /* Colores de texto */
+    --text-on-primary: #ffffff;
+    --text-muted-light: rgba(255, 255, 255, 0.7);
 }
 
-/* Utilidades generales */
+/* ========================================
+   Sobrescribir colores de Bootstrap
+   ======================================== */
+
+/* Botones Primary */
+.btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--text-on-primary) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--primary-hover) !important;
+    border-color: var(--primary-hover) !important;
+    color: var(--text-on-primary) !important;
+}
+
+.btn-primary:disabled {
+    background-color: var(--primary-light) !important;
+    border-color: var(--primary-light) !important;
+}
+
+/* Botones Outline Primary */
+.btn-outline-primary {
+    color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--text-on-primary) !important;
+}
+
+/* Links */
+a {
+    color: var(--primary-color);
+}
+
+a:hover {
+    color: var(--primary-hover);
+}
+
+/* Text utilities */
+.text-primary {
+    color: var(--primary-color) !important;
+}
+
+/* Background utilities */
+.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+/* Form controls focus */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 0.25rem rgba(139, 0, 0, 0.25);
+}
+
+/* Form check (switches, checkboxes) */
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.form-check-input:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 0.25rem rgba(139, 0, 0, 0.25);
+}
+
+/* Spinner */
+.spinner-border.text-primary {
+    color: var(--primary-color) !important;
+}
+
+/* ========================================
+   Clases personalizadas
+   ======================================== */
+
+/* Utilidades de texto */
 .text-primary-custom {
     color: var(--primary-color) !important;
 }
 
+/* Botón custom primary */
 .btn-primary-custom {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
-    color: white;
+    color: var(--text-on-primary);
 }
 
 .btn-primary-custom:hover {
     background-color: var(--primary-hover);
     border-color: var(--primary-hover);
-    color: white;
+    color: var(--text-on-primary);
 }
 
-/* Gradiente para auth */
+/* Gradiente para auth y headers */
 .auth-gradient {
     background: linear-gradient(
         135deg,
         var(--primary-color) 0%,
-        #5a1c1c 100%
+        var(--primary-dark) 100%
     );
+}
+
+/* Badge primary */
+.badge.bg-primary {
+    background-color: var(--primary-color) !important;
+}
+
+/* Progress bar */
+.progress-bar {
+    background-color: var(--primary-color);
+}
+
+/* Pagination */
+.page-link {
+    color: var(--primary-color);
+}
+
+.page-link:hover {
+    color: var(--primary-hover);
+}
+
+.page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Nav tabs/pills */
+.nav-link.active {
+    color: var(--primary-color) !important;
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--primary-color);
+    color: var(--text-on-primary) !important;
+}
+
+/* Dropdown */
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: var(--primary-color);
+}
+
+/* Cards con borde primary */
+.card.border-primary {
+    border-color: var(--primary-color) !important;
+}
+
+/* List group */
+.list-group-item.active {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Tables */
+.table-primary {
+    --bs-table-bg: rgba(139, 0, 0, 0.1);
+    --bs-table-border-color: rgba(139, 0, 0, 0.2);
+}
+
+/* Alerts */
+.alert-primary {
+    background-color: rgba(139, 0, 0, 0.1);
+    border-color: rgba(139, 0, 0, 0.2);
+    color: var(--primary-dark);
+}
+
+/* ========================================
+   Scrollbar personalizada
+   ======================================== */
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-light);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
 }

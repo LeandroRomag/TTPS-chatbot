@@ -1,84 +1,178 @@
-/* Fondo general */
-.login-container {
-    background-color: #f0f0f0;      /* Gris clarito como la imagen */
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* ========================================
+   Variables locales (heredan de base.css si existe)
+   ======================================== */
+
+:root {
+    --login-primary: #8B0000;
+    --login-primary-hover: #A50000;
+    --login-primary-dark: #6B0000;
+    --login-bg: #f0f0f0;
+    --login-input-bg: #e8e8e8;
 }
 
-/* Caja del login */
-.login-box {
-    background-color: white;
-    border: 3px solid #8b0000;      /* Bordo/rojo exacto de la imagen */
-    border-radius: 6px;
-    padding: 50px 60px;
-    text-align: center;
-    width: 420px;
-}
-
-/* Título */
-.login-title {
-    font-size: 28px;
-    font-weight: 600;
-    margin-bottom: 40px;
-    color: #000;
-}
-
-/* Inputs */
-.login-input {
-    width: 100%;
-    padding: 14px;
-    margin-bottom: 30px;
-    background-color: #e4e4e4;      /* Gris del mockup */
-    border: 2px solid #8b0000;      
-    border-radius: 4px;
-    font-size: 16px;
-    text-align: center;
-}
-
-/* Botón */
-.login-btn {
-    width: 70%;
-    padding: 12px;
-    background-color: #8b0000;
-    border: none;
-    border-radius: 4px;
-    font-size: 17px;
-    color: white;
-    cursor: pointer;
-    margin-top: 10px;
-}
-
-.login-btn:hover {
-    background-color: #a40000;
-}
-
-/* Error */
-.error-msg {
-    margin-top: 20px;
-    background: #ffdddd;
-    padding: 10px;
-    border: 1px solid #d40000;
-    color: #800000;
-    border-radius: 4px;
-    font-size: 14px;
-}
+/* ========================================
+   Header con logos
+   ======================================== */
 
 .login-header {
     background-color: #ffffff;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 3px solid var(--login-primary);
     padding: 16px 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .login-header-logos {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 24px;          /* separación entre logos */
+    gap: 32px;
 }
 
 .login-logo {
     height: 60px;
     object-fit: contain;
+}
+
+/* ========================================
+   Container principal
+   ======================================== */
+
+.login-container {
+    background-color: var(--login-bg);
+    min-height: calc(100vh - 95px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+/* ========================================
+   Caja del login
+   ======================================== */
+
+.login-box {
+    background-color: #ffffff;
+    border: 3px solid var(--login-primary);
+    border-radius: 8px;
+    padding: 50px 60px;
+    text-align: center;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 24px rgba(139, 0, 0, 0.15);
+}
+
+/* ========================================
+   Titulo
+   ======================================== */
+
+.login-title {
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 40px;
+    color: var(--login-primary-dark);
+}
+
+/* ========================================
+   Inputs
+   ======================================== */
+
+.login-input {
+    width: 100%;
+    padding: 14px 16px;
+    margin-bottom: 24px;
+    background-color: var(--login-input-bg);
+    border: 2px solid transparent;
+    border-radius: 6px;
+    font-size: 16px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.login-input:focus {
+    outline: none;
+    border-color: var(--login-primary);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.15);
+}
+
+.login-input::placeholder {
+    color: #888;
+}
+
+/* ========================================
+   Boton de login
+   ======================================== */
+
+.login-btn {
+    width: 70%;
+    padding: 14px;
+    background-color: var(--login-primary);
+    border: none;
+    border-radius: 6px;
+    font-size: 17px;
+    font-weight: 600;
+    color: #ffffff;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s ease;
+}
+
+.login-btn:hover {
+    background-color: var(--login-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 0, 0, 0.3);
+}
+
+.login-btn:active {
+    background-color: var(--login-primary-dark);
+    transform: translateY(0);
+}
+
+.login-btn:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* ========================================
+   Mensajes de error
+   ======================================== */
+
+.error-msg {
+    margin-top: 24px;
+    background: rgba(139, 0, 0, 0.08);
+    padding: 12px 16px;
+    border: 1px solid var(--login-primary);
+    color: var(--login-primary-dark);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* ========================================
+   Responsive
+   ======================================== */
+
+@media (max-width: 480px) {
+    .login-box {
+        padding: 40px 30px;
+        margin: 1rem;
+    }
+
+    .login-title {
+        font-size: 24px;
+        margin-bottom: 30px;
+    }
+
+    .login-btn {
+        width: 100%;
+    }
+
+    .login-header-logos {
+        gap: 16px;
+    }
+
+    .login-logo {
+        height: 45px;
+    }
 }
