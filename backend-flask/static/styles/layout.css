@@ -13,44 +13,69 @@
 }
 
 .sidebar a {
-    color: var(--text-on-primary);
+    color: #ffffff;
     text-decoration: none;
 }
 
+/* Links del sidebar - Estado normal */
 .sidebar .nav-link {
     padding: 0.75rem 1rem;
     border-radius: 0.5rem;
-    color: var(--text-muted-light);
+    color: #ffffff !important;
+    opacity: 0.85;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
 }
 
+/* Hover en links del sidebar */
 .sidebar .nav-link:hover {
     background-color: var(--sidebar-hover);
-    color: var(--text-on-primary);
+    color: #ffffff !important;
+    opacity: 1;
 }
 
+/* Estado ACTIVO del sidebar - muy visible */
 .sidebar .nav-link.active {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: var(--text-on-primary);
-    font-weight: 500;
+    background-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff !important;
+    opacity: 1;
+    font-weight: 600;
+    border-left: 3px solid #ffffff;
+    padding-left: calc(1rem - 3px);
 }
 
+.sidebar .nav-link.active:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Iconos del sidebar */
 .sidebar .nav-link i {
-    width: 20px;
+    width: 24px;
     text-align: center;
+    font-size: 1.1rem;
 }
 
 /* Brand/Logo en sidebar */
 .sidebar .sidebar-brand {
     padding: 1rem;
     margin-bottom: 1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .sidebar .sidebar-brand-text {
     font-weight: 700;
     font-size: 1.1rem;
-    color: var(--text-on-primary);
+    color: #ffffff;
+}
+
+/* Título de la facultad */
+.sidebar .mb-4.fw-bold {
+    color: #ffffff;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 /* ========================================
@@ -60,6 +85,14 @@
 .main-content {
     margin-left: var(--sidebar-width);
     min-height: 100vh;
+    background-color: #f8f9fa;
+}
+
+/* Títulos principales - buen contraste */
+.main-content h2,
+.main-content h3,
+.main-content h4 {
+    color: #212529;
 }
 
 /* ========================================
@@ -69,6 +102,7 @@
 .card {
     border: none;
     border-radius: 0.5rem;
+    background-color: #ffffff;
 }
 
 .card-hover {
@@ -81,8 +115,53 @@
 }
 
 .card-header {
-    background-color: #fff;
+    background-color: #ffffff;
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    color: #212529;
+}
+
+.card-body {
+    color: #212529;
+}
+
+.card-title {
+    color: #212529;
+}
+
+/* ========================================
+   Tablas - mejor contraste
+   ======================================== */
+
+.table {
+    color: #212529;
+}
+
+.table thead th {
+    font-weight: 600;
+    color: #212529;
+    background-color: #f8f9fa;
+    border-bottom-width: 2px;
+}
+
+.table tbody td {
+    color: #212529;
+    vertical-align: middle;
+}
+
+.table-light {
+    background-color: #f8f9fa !important;
+}
+
+.table-light th {
+    color: #212529 !important;
+}
+
+/* Celdas con texto truncado */
+.text-truncate-cell {
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* ========================================
@@ -95,22 +174,15 @@
     height: 1.5em;
 }
 
-/* ========================================
-   Tables
-   ======================================== */
-
-.table thead th {
-    font-weight: 600;
-    color: #495057;
-    border-bottom-width: 1px;
+/* Labels de formulario */
+.form-label {
+    color: #212529;
+    font-weight: 500;
 }
 
-/* Celdas con texto truncado */
-.text-truncate-cell {
-    max-width: 250px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+/* Texto de ayuda */
+.form-text {
+    color: #6c757d;
 }
 
 /* ========================================
@@ -126,6 +198,56 @@
 .page-header h2 {
     color: var(--primary-dark);
     font-weight: 600;
+}
+
+/* ========================================
+   Text Utilities - Contraste mejorado
+   ======================================== */
+
+/* Texto muted más visible */
+.text-muted {
+    color: #6c757d !important;
+}
+
+/* Links en contenido principal */
+.main-content a:not(.btn):not(.nav-link) {
+    color: var(--primary-color);
+}
+
+.main-content a:not(.btn):not(.nav-link):hover {
+    color: var(--primary-hover);
+}
+
+/* ========================================
+   Alerts - mejor visibilidad
+   ======================================== */
+
+.alert {
+    border-radius: 0.5rem;
+}
+
+.alert-success {
+    background-color: #d1e7dd;
+    border-color: #badbcc;
+    color: #0f5132;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+    color: #842029;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+    color: #664d03;
+}
+
+.alert-info {
+    background-color: #cff4fc;
+    border-color: #b6effb;
+    color: #055160;
 }
 
 /* ========================================
@@ -176,6 +298,38 @@
 }
 
 /* ========================================
+   Badges
+   ======================================== */
+
+.badge {
+    font-weight: 500;
+}
+
+/* ========================================
+   Buttons en contenido - contraste
+   ======================================== */
+
+.btn-outline-secondary {
+    color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    color: #ffffff;
+}
+
+.btn-outline-danger {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-outline-danger:hover {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+/* ========================================
    Responsive
    ======================================== */
 
@@ -184,7 +338,11 @@
         width: 80px;
     }
 
-    .sidebar .sidebar-brand-text,
+    .sidebar .mb-4.fw-bold {
+        font-size: 0.7rem;
+        text-align: center;
+    }
+
     .sidebar .nav-link span {
         display: none;
     }
@@ -199,6 +357,12 @@
         font-size: 1.25rem;
     }
 
+    .sidebar .nav-link.active {
+        border-left: none;
+        border-bottom: 3px solid #ffffff;
+        padding-left: 0.75rem;
+    }
+
     .main-content {
         margin-left: 80px;
     }
@@ -209,7 +373,12 @@
         width: 60px;
     }
 
+    .sidebar .mb-4.fw-bold {
+        display: none;
+    }
+
     .main-content {
         margin-left: 60px;
+        padding: 1rem !important;
     }
 }

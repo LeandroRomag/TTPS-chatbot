@@ -55,12 +55,12 @@
     color: var(--text-on-primary) !important;
 }
 
-/* Links */
-a {
+/* Links - Solo en contenido principal, no en sidebar */
+a:not(.sidebar a):not(.nav-link) {
     color: var(--primary-color);
 }
 
-a:hover {
+a:not(.sidebar a):not(.nav-link):hover {
     color: var(--primary-hover);
 }
 
