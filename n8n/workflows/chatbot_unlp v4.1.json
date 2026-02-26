@@ -1,0 +1,696 @@
+{
+  "name": "chatbot_unlp",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "docs",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "ca66486b-db90-46d0-8ccf-a1a1a1c79e14",
+      "name": "Qdrant Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [
+        352,
+        80
+      ],
+      "credentials": {
+        "qdrantApi": {
+          "id": "bUZvALY5MsQ249dt",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "nomic-embed-text:latest"
+      },
+      "id": "204ac830-a762-4c85-ad40-7978e74e3f62",
+      "name": "Embeddings Ollama",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        304,
+        272
+      ],
+      "credentials": {
+        "ollamaApi": {
+          "id": "UeuTOyxeOxTuzIXj",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "document_id",
+                "value": "={{ $('Webhook1').first().json.body.document_id }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "bc0e77e9-b3fc-44d5-9983-e82cb8a96a2a",
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        432,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "id": "17f0c8e0-cd8b-48b0-9570-6643e158a2aa",
+      "name": "Recursive Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        480,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "formTitle": "Add documents to semantic database",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Add PDF file",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        48,
+        288
+      ],
+      "id": "13b036fb-2aed-46b7-90fe-132322c48acb",
+      "name": "On form submission1",
+      "webhookId": "fa087950-57c2-44df-9542-e91970ad8fbe"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatbot-unlp",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "459d362e-f791-4052-8a11-90c6609eb24c",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        1008,
+        96
+      ],
+      "webhookId": "chatbot-unlp"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "Eres el Asistente Académico de la Facultad de Informática de la UNLP.\n\n### 🧠 TU CEREBRO: DOS HEMISFERIOS\nTienes dos tipos de herramientas. Debes elegir la correcta según el TIPO de pregunta.\n\n---\n🔴 HEMISFERIO LÓGICO (APIs - Datos en Tiempo Real)\nÚsalas para preguntas de \"CUÁNDO\", \"DÓNDE\", \"QUÉ HAY\" y \"ESTADO\".\n1. **consultar_materias**: Catálogo maestro (siempre empieza aquí si buscan una materia).\n2. **consultar_horarios_aulas**: Logística (Horarios exactos, Aulas confirmadas).\n3. **consultar_detalle_materia**: Académico (Inicio de cursada, Programas, Correlativas).\n4. **consultar_cartelera_materia**: Avisos y mensajes de profesores.\n5. **consultar_ocupacion_aula**: Disponibilidad física de aulas (ej: \"¿Qué hay en el Aula 5?\").\n6. **consultar_estado_edificio**: Estado operativo (¿Está abierta la facu?, ¿Cierran hoy?).\n7. **consultar_novedades_general**: Timeline de la facultad, eventos y llamados.\n8. **consultar_calendario**: Fechas de exámenes finales y feriados.\n9. **consultar_planes**: Listado de carreras y planes de estudio.\n\n---\n🔵 HEMISFERIO DE CONOCIMIENTO (Qdrant - Documentación)\nÚsala para preguntas de \"CÓMO\", \"QUÉ ES\" y \"REGLAMENTOS\".\n10. **consultar_base_conocimiento**:\n   - Definiciones técnicas (Ej: \"¿Qué es SRS?\", \"¿Qué es un autómata?\").\n   - Detalles de contenido de materias (Bibliografía, unidades temáticas).\n   - Reglamentos y trámites administrativos (Excepciones, Régimen de enseñanza).\n\n---\n### 🚦 PROTOCOLO DE DECISIÓN (Sigue este orden)\n\nCASO 1: ¿El usuario pide un DATO DURO? (Horario, Aula, Fecha, Estado)\n   👉 ¡PROHIBIDO usar Qdrant! Usa exclusivamente las APIs del Hemisferio Rojo (1-9).\n   *Ej: \"Aula de Objetos 1\" -> consultar_horarios_aulas.*\n\nCASO 2: ¿El usuario pide un CONCEPTO, REGLAMENTO o CONTENIDO?\n   👉 Usa DIRECTAMENTE `consultar_base_conocimiento`. Las APIs no saben qué es \"SRS\" o \"Régimen de Correlativas\".\n   *Ej: \"Tenes info sobre SRS\" -> consultar_base_conocimiento.*\n\nCASO 3: ¿Pregunta Mixta?\n   👉 Usa ambas herramientas en orden lógico.\n   *Ej: \"¿A qué hora curso Ingeniería de Software y qué temas ven?\"*\n   1. `consultar_horarios_aulas` (para la hora).\n   2. `consultar_base_conocimiento` (para los temas).\n\n### ⚠️ REGLA DE EFICIENCIA\nSi la respuesta está en una API, NO consultes la base de conocimiento. Prioriza siempre el dato en tiempo real."
+        }
+      },
+      "id": "ae5e13dd-ad58-4337-a56c-7166bd5c8d84",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        1264,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "id": "8b6fbd8c-b528-4547-840f-1e42874e0009",
+      "name": "Groq Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        304
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "sTY8ZwIQ1O2xaknx",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "548e8b54-6306-492c-a9b6-8be0f66a4209",
+              "name": "answer",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1616,
+        96
+      ],
+      "id": "a7b805e6-a369-45ba-ae86-fa43e7a78e1f",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "content": "## RAG Chatbot\n\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 816,
+        "width": 1104,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        944,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "ff7b71d6-41c8-4bc9-8e87-42fac9496e90",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## PDF Ingestion Process\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 832,
+        "width": 864,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        0,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "4daca3f4-fd21-4eab-9a68-e26dd2bd73ed",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ingest-pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        64,
+        64
+      ],
+      "id": "2c68520f-ff31-4f54-a29c-497f8124c1ac",
+      "name": "Webhook1",
+      "webhookId": "e7771068-7e61-4897-b107-4018a2418a61"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "delete-document",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        64,
+        -144
+      ],
+      "id": "52a2e13f-2d0c-43a4-8ef9-c3bd8c4c5279",
+      "name": "Webhook2",
+      "webhookId": "5442fc88-6132-4aa4-bc09-cd8780a6fb4d"
+    },
+    {
+      "parameters": {
+        "resource": "point",
+        "operation": "deletePoints",
+        "collectionName": {
+          "__rl": true,
+          "value": "docs",
+          "mode": "list",
+          "cachedResultName": "docs"
+        },
+        "points": "=",
+        "filter": "={\n  \"must\": [\n    {\n      \"key\": \"metadata.document_id\",\n      \"match\": {\n        \"value\": \"{{ $json.body.document_id.toString() }}\"\n      }\n    }\n  ]\n}",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-qdrant.qdrant",
+      "typeVersion": 1,
+      "position": [
+        352,
+        -144
+      ],
+      "id": "b0d7a703-e84e-4b31-8fac-a205aab96d37",
+      "name": "Delete Points",
+      "credentials": {
+        "qdrantRestApi": {
+          "id": "jm17C0dIBeUmuSUY",
+          "name": "Qdrant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        1168,
+        -304
+      ],
+      "id": "9630d7dd-4472-475b-8a02-72804dc160d8",
+      "name": "When chat message received",
+      "webhookId": "3c1683bf-85d1-4881-8234-5398b66acd25"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nonratably-lushiest-alexandra.ngrok-free.dev/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"message\": \"{{ $json.chatInput }}\" }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1376,
+        -304
+      ],
+      "id": "de5d2389-3d3f-4b25-8e0d-4fe306fdeed4",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "description": "Útil para consultar fechas de exámenes, inscripciones, cursadas y feriados. Devuelve el calendario académico oficial.",
+        "jsCode": "// 1. Hacemos la petición a la API de la UNLP\nconst response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://gestionapp.info.unlp.edu.ar/api/CALENDARIO_ACADEMICO',\n    json: true\n});\n\n// 2. Función para limpiar HTML (quita tags y espacios extra)\nfunction cleanHtml(text) {\n    if (!text) return '';\n    // Reemplaza cualquier tag HTML (<...>) por un salto de línea\n    let clean = text.replace(/<[^>]+>/g, '\\n');\n    // Reemplaza múltiples espacios/saltos por uno solo\n    clean = clean.replace(/\\s+/g, ' ').trim();\n    return clean;\n}\n\n// 3. Procesamos los datos para reducir tamaño\nconst cleanData = response.map(item => {\n    return {\n        calendario: item.nombre,\n        contenido: cleanHtml(item.contenido)\n    };\n});\n\n// 4. 🔥 CORRECCIÓN: Convertimos el objeto a TEXTO (String) para que el Agente lo entienda\nreturn JSON.stringify(cleanData);"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1648,
+        320
+      ],
+      "id": "4dd3191d-075a-42e9-9687-f3196786ccdc",
+      "name": "consultar_calendario"
+    },
+    {
+      "parameters": {
+        "description": "Obtiene el listado de todas las materias disponibles.",
+        "jsCode": "// 1. LA HERRAMIENTA HACE SU PROPIA PETICIÓN (Autónoma)\n// Esto asegura que los datos siempre estén disponibles cuando el Agente llame a la Tool\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  url: 'https://gestiondocente.info.unlp.edu.ar/api/v2/materias.json',\n  json: true\n});\n\n// 2. EXTRAER EL ARRAY DE MATERIAS DEL RESULTADO\nconst materias = response._embedded?.materias || [];\n\n// 3. EXTRAER SOLO LOS NOMBRES, LIMPIAR Y ELIMINAR DUPLICADOS\nconst nombresUnicos = [...new Set(materias.map(m => m.nombre ? m.nombre.trim() : \"\"))].filter(n => n !== \"\");\n\n// 4. ORDENAR ALFABÉTICAMENTE\nnombresUnicos.sort((a, b) => a.localeCompare(b));\n\n// 5. VALIDACIÓN\nif (nombresUnicos.length === 0) {\n    return \"No se pudo obtener la lista de materias en este momento.\";\n}\n\n// 6. RETORNAR EL STRING PLANO\n// El Agente recibirá esto y Groq decidirá qué mostrar según la pregunta del usuario\nreturn \"LISTADO COMPLETO DE MATERIAS:\\n\" + nombresUnicos.join('\\n');"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1808,
+        320
+      ],
+      "id": "237ae8bc-6da8-4980-8dcc-4f62f5b2774e",
+      "name": "consultar_materias"
+    },
+    {
+      "parameters": {
+        "description": "Úsala para obtener la lista de carreras y planes de estudio vigentes en la Facultad de Informática. No requiere parámetros.",
+        "jsCode": "// 1. PETICIÓN AUTÓNOMA AL ENDPOINT DE PLANES\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  url: 'https://gestionapp.info.unlp.edu.ar/api/PLANES_ESTUDIOS',\n  json: true\n});\n\n// 2. VALIDAR Y EXTRAER LOS DATOS\n// Asumiendo que el endpoint devuelve un array directo o un objeto con una lista\nconst planes = Array.isArray(response) ? response : (response.planes || []);\n\n// 3. PROCESAR Y FORMATEAR LOS NOMBRES DE CARRERAS/PLANES\nconst listaPlanes = planes.map(p => {\n    const nombre = p.nombre || p.descripcion || \"Plan sin nombre\";\n    const codigo = p.codigo || p.id || \"\";\n    return `- ${nombre} ${codigo ? `(Código: ${codigo})` : \"\"}`;\n}).filter(n => n !== \"\");\n\n// 4. VALIDACIÓN DE RESULTADOS\nif (listaPlanes.length === 0) {\n    return \"Actualmente no hay información disponible sobre los planes de estudio.\";\n}\n\n// 5. RETORNAR EL STRING PLANO AL AGENTE\nreturn \"PLANES DE ESTUDIO Y CARRERAS DISPONIBLES:\\n\\n\" + listaPlanes.join('\\n');"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1632,
+        464
+      ],
+      "id": "c7a55376-114a-40bd-94c8-686956e9c694",
+      "name": "consultar_planes"
+    },
+    {
+      "parameters": {
+        "description": "Obtiene horarios, fechas y programa usando el slug técnico.",
+        "jsCode": "// 1. OBTENCIÓN DIRECTA\nconst slug = query.slug;\n\n// 2. VALIDACIÓN\nif (!slug) {\n  return \"ERROR: La variable 'query' llegó vacía o sin slug. Asegúrate de consultar primero la lista de materias.\";\n}\n\n// 3. LLAMADA A LA API (Directa, sin modificar el slug)\ntry {\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gestiondocente.info.unlp.edu.ar/api/v2/materias/${slug}.json`,\n    json: true\n  });\n\n  // Función de limpieza de texto (quita HTML y espacios extra)\n  const clean = (t) => (t || \"No especificado\")\n    .replace(/<br\\s*\\/?>/gi, '\\n') // Cambia <br> por saltos de línea\n    .replace(/<[^>]*>?/gm, ' ')    // Quita resto de etiquetas HTML\n    .replace(/\\s+/g, ' ')          // Quita espacios dobles\n    .trim();\n\n  // 4. RESPUESTA (IMPORTANTE: Debe ser texto/String)\n  return `✅ DATOS ENCONTRADOS PARA: ${response.nombre}\n- 📅 Inicio: ${clean(response.inicio_cursada)}\n- ⏰ Horarios: ${clean(response.horarios_cursada)}\n- 🔗 Programa: ${response.programa_url || \"No disponible\"}`;\n\n} catch (error) {\n  return `ERROR 404: No existe la materia con el slug '${slug}'. Verifica que el nombre sea correcto en la lista de materias.`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"slug\": {\n      \"type\": \"string\",\n      \"description\": \"El slug único de la materia obtenido previamente (ej: bases-de-datos)\"\n    }\n  },\n  \"required\": [\"slug\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1808,
+        464
+      ],
+      "id": "0b512ac7-f679-4ee7-a4e0-b4a9801abea7",
+      "name": "consultar_detalle_materia"
+    },
+    {
+      "parameters": {
+        "description": "Úsala para obtener las noticias más recientes, fechas de inscripciones, elecciones, talleres y avisos generales de la Facultad de Informática. No requiere parámetros.",
+        "jsCode": "// 1. PETICIÓN AUTÓNOMA AL ENDPOINT DEL TIMELINE\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  url: 'https://gestiondocente.info.unlp.edu.ar/api/v2/timeline.json',\n  json: true\n});\n\n// 2. EXTRAER EL CONTENIDO RELEVANTE\nconst items = response._embedded?.content || [];\n\n// 3. PROCESAR Y LIMPIAR LAS NOTICIAS\nconst noticiasProcesadas = items.map(item => {\n    const data = item._embedded?.noticia;\n    if (!data) return null;\n\n    // Formatear la fecha a algo más legible\n    const fechaLimpia = data.fecha ? data.fecha.split('T')[0] : \"Fecha no disponible\";\n    \n    // Limpieza profunda de HTML del cuerpo de la noticia\n    const cuerpoLimpio = data.cuerpo\n        .replace(/<[^>]*>?/gm, ' ') // Quita etiquetas HTML\n        .replace(/&bull;/g, '•')     // Convierte viñetas\n        .replace(/&nbsp;/g, ' ')    // Quita espacios HTML\n        .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í').replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú')\n        .replace(/&ntilde;/g, 'ñ').replace(/&iquest;/g, '¿')\n        .replace(/\\s+/g, ' ')       // Quita espacios múltiples\n        .trim();\n\n    // Devolvemos un string compacto por cada noticia\n    return `[${fechaLimpia}] TITULO: ${data.titulo}\\nRESUMEN: ${cuerpoLimpio.substring(0, 300)}...`;\n}).filter(n => n !== null);\n\n// 4. VALIDACIÓN DE RESULTADOS\nif (noticiasProcesadas.length === 0) {\n    return \"No hay noticias o actividades recientes en el timeline en este momento.\";\n}\n\n// 5. RETORNAR EL STRING PLANO AL AGENTE (Limitado a las últimas 8 noticias para no saturar)\nreturn \"NOVEDADES Y ACTIVIDADES RECIENTES DE LA FACULTAD:\\n\\n\" + noticiasProcesadas.slice(0, 8).join('\\n\\n---\\n\\n');"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1936,
+        320
+      ],
+      "id": "a12c813f-847e-487c-917c-e7b5aec8c04f",
+      "name": "consultar_novedades_general"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. OBTENCIÓN DIRECTA\nconst slug = query.slug;\n\n// 2. VALIDACIÓN\nif (!slug) return \"ERROR: No llegó el slug.\";\n\ntry {\n  // 3. LLAMADA A LA API\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gestiondocente.info.unlp.edu.ar/api/v2/materias/${slug}/mensajes.json`,\n    qs: { limit: 5 }, // Traemos solo las últimas 5 para no saturar\n    json: true\n  });\n\n  // 4. EXTRACCIÓN CORRECTA (Aquí estaba el error antes)\n  // La API guarda la lista dentro de response._embedded.mensajes\n  const mensajes = response._embedded?.mensajes || [];\n\n  if (mensajes.length === 0) {\n    return `ℹ️ No hay novedades recientes publicadas en la cartelera de '${slug}'.`;\n  }\n\n  // 5. LIMPIEZA DE HTML (Vital porque la captura muestra mucho HTML sucio)\n  const clean = (t) => (t || \"\")\n    .replace(/<br\\s*\\/?>/gi, '\\n') // Convertimos <br> en saltos de línea reales\n    .replace(/<[^>]*>?/gm, '')     // Borramos el resto de etiquetas HTML\n    .replace(/&nbsp;/g, ' ')       // Quitamos espacios HTML\n    .replace(/\\s+/g, ' ')          // Colapsamos espacios múltiples\n    .trim();\n\n  // 6. FORMATEO DE SALIDA\n  const lista = mensajes.map(m => {\n    const titulo = clean(m.titulo || m.asunto || \"Sin título\");\n    // Usamos updated_at o created_at según lo que venga\n    const fechaRaw = m.updated_at || m.created_at || m.fecha; \n    const fecha = fechaRaw ? fechaRaw.split('T')[0] : \"Fecha desc.\"; \n    const contenido = clean(m.cuerpo || m.mensaje).slice(0, 250); // Un poco más largo para que se entienda\n    \n    return `📌 *${titulo}* (${fecha})\\n\"${contenido}...\"`;\n  }).join(\"\\n\\n-------------------\\n\\n\");\n\n  return `📢 ÚLTIMAS NOVEDADES DE ${slug.toUpperCase()}:\\n\\n${lista}`;\n\n} catch (error) {\n  // Si falla, mostramos el error técnico para depurar mejor\n  const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;\n  return `ERROR TÉCNICO: No pude acceder a los mensajes. Detalle: ${errorMsg}`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"slug\": {\n      \"type\": \"string\",\n      \"description\": \"El slug único de la materia (ej: orientacion-a-objetos-1)\"\n    }\n  },\n  \"required\": [\"slug\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1936,
+        480
+      ],
+      "id": "8fe27551-4149-4ddf-89e9-97108e3b5f8c",
+      "name": "consultar_cartelera_materia"
+    },
+    {
+      "parameters": {
+        "description": "Obtiene el detalle exacto de días, horarios y aulas asignadas para las cursadas.",
+        "jsCode": "// 1. OBTENCIÓN DIRECTA\nconst slug = query.slug;\n\n// 2. VALIDACIÓN\nif (!slug) return \"ERROR: No llegó el slug.\";\n\ntry {\n  // 3. LLAMADA A LA API\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gestiondocente.info.unlp.edu.ar/api/v2/materias/${slug}/reservas.json`,\n    json: true\n  });\n\n  // 4. ESTRATEGIA DE LECTURA (Soporta formato directo o HATEOAS)\n  // Asumimos que si es HATEOAS viene en _embedded.reservas, si no, es el response directo\n  const reservas = response._embedded?.reservas || response || [];\n\n  if (!Array.isArray(reservas) || reservas.length === 0) {\n    return `ℹ️ No encontré asignaciones de aulas/horarios específicas confirmadas para '${slug}' en este endpoint.`;\n  }\n\n  // 5. FORMATEO DE SALIDA\n  // Mapeamos campos comunes de reservas (Día, Hora, Aula, Tipo)\n  const lista = reservas.map(r => {\n    // Intentamos capturar los datos aunque cambien los nombres de los campos\n    const dia = r.dia || \"Día a confirmar\";\n    // A veces viene 'hora_inicio', a veces 'inicio'\n    const hora = (r.hora_inicio && r.hora_fin) \n                 ? `${r.hora_inicio.slice(0,5)} a ${r.hora_fin.slice(0,5)}` \n                 : \"Horario a confirmar\";\n    \n    // Manejo de Aula (puede ser objeto o string)\n    let aula = \"Aula sin asignar\";\n    if (r.aula) {\n        aula = typeof r.aula === 'object' ? (r.aula.nombre || r.aula.descripcion) : r.aula;\n    } else if (r.nombre_aula) { // Fallback por si la API usa otro nombre\n        aula = r.nombre_aula;\n    }\n\n    // Tipo de clase (Teoría, Práctica, Consulta)\n    const tipo = r.tipo || r.comision || \"Clase\";\n\n    return `🕒 **${dia} ${hora}**\\n   📍 ${aula} (${tipo})`;\n  }).join(\"\\n\\n\");\n\n  return `📅 HORARIOS Y AULAS CONFIRMADAS PARA ${slug.toUpperCase()}:\\n\\n${lista}`;\n\n} catch (error) {\n  const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;\n  return `ERROR TÉCNICO al consultar reservas: ${errorMsg}`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"slug\": {\n      \"type\": \"string\",\n      \"description\": \"El slug único de la materia\"\n    }\n  },\n  \"required\": [\"slug\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1632,
+        608
+      ],
+      "id": "dc59f95d-3d21-4a70-b331-69ca985b0cc9",
+      "name": "consultar_horarios_aulas"
+    },
+    {
+      "parameters": {
+        "description": "Obtiene la lista de reservas y disponibilidad de un aula física específica (ej: Aula 5, Aula 10).",
+        "jsCode": "// 1. OBTENCIÓN Y NORMALIZACIÓN\n// Como no tenemos lista de aulas, ayudamos a la IA convirtiendo \"Aula 5\" -> \"aula-5\"\nlet slug = query.slug;\n\nif (!slug) return \"ERROR: No llegó el identificador del aula.\";\n\n// Normalización técnica: minúsculas y espacios por guiones\nconst slugFinal = slug.toLowerCase().replace(/\\s+/g, '-').trim();\n\n// 2. FECHA DE HOY (Para filtrar y no traer historial viejo)\n// Calculamos la fecha actual en formato YYYY-MM-DD para el parámetro 'desde'\nconst hoy = new Date().toISOString().split('T')[0];\n\ntry {\n  // 3. LLAMADA A LA API\n  // Usamos el filtro 'desde' para ver solo lo futuro/actual\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gestiondocente.info.unlp.edu.ar/api/v2/aulas/${slugFinal}/reservas.json`,\n    qs: { desde: hoy }, \n    json: true\n  });\n\n  // 4. ESTRATEGIA DE LECTURA (HATEOAS vs Directo)\n  const reservas = response._embedded?.reservas || response || [];\n\n  if (!Array.isArray(reservas) || reservas.length === 0) {\n    return `ℹ️ No encontré reservas registradas en el '${slugFinal}' a partir de hoy. Podría estar libre.`;\n  }\n\n  // 5. FORMATEO DE SALIDA\n  // Ordenamos por día/hora para que quede cronológico\n  const lista = reservas\n    .slice(0, 10) // Limitamos a 10 eventos para no llenar la pantalla\n    .map(r => {\n        const dia = r.dia || r.fecha || \"Fecha a confirmar\";\n        const hora = (r.hora_inicio && r.hora_fin) \n                     ? `${r.hora_inicio.slice(0,5)} a ${r.hora_fin.slice(0,5)}` \n                     : \"Horario desc.\";\n        \n        // Intentamos sacar el nombre de la materia o evento\n        let evento = \"Evento reservado\";\n        if (r.materia) {\n            evento = typeof r.materia === 'object' ? r.materia.nombre : r.materia;\n        } else if (r.evento) {\n            evento = r.evento;\n        }\n\n        return `📍 **${dia} [${hora}]**\\n   🎓 ${evento}`;\n    }).join(\"\\n\\n\");\n\n  return `📅 OCUPACIÓN DEL ${slugFinal.toUpperCase()}:\\n\\n${lista}`;\n\n} catch (error) {\n  return `ERROR 404: No pude encontrar el aula '${slugFinal}'. Verifica si el número es correcto (ej: Aula 5, Aula Magna).`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"slug\": {\n      \"type\": \"string\",\n      \"description\": \"El identificador del aula (ej: aula-5, aula-1b, aula-10)\"\n    }\n  },\n  \"required\": [\"slug\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1808,
+        608
+      ],
+      "id": "d0ca4e93-201c-4145-8c16-199e4fbf855c",
+      "name": "consultar_ocupacion_aula"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Utiliza esta herramienta para buscar información institucional, reglamentos académicos, guías de trámites, planes de estudio y contexto histórico de la facultad.",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "docs",
+          "mode": "list",
+          "cachedResultName": "docs"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.3,
+      "position": [
+        1344,
+        352
+      ],
+      "id": "6fa7eb9c-05bf-44c2-8363-7807d5ad721a",
+      "name": "consultar_base_conocimiento",
+      "credentials": {
+        "qdrantApi": {
+          "id": "bUZvALY5MsQ249dt",
+          "name": "QdrantApi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Embeddings Ollama": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "consultar_base_conocimiento",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission1": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qdrant Vector Store": {
+      "main": [
+        []
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Delete Points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_calendario": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_materias": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_planes": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_detalle_materia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_novedades_general": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_cartelera_materia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_horarios_aulas": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_ocupacion_aula": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_base_conocimiento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "d3d77e35-54bb-4b50-84d5-e550414835ae",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7c796073bc565a61b69e27843b6fabc6aa9581a23f99756ad5cbf3ecddb84759"
+  },
+  "id": "QMziyGMpsvdqcrcn",
+  "tags": []
+}

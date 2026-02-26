@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Estado del Sistema - UNLP{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <h2>Configuración de Estado del Sistema</h2>
+    <hr>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <h5 class="card-title">Control de Flujo de Mensajes</h5>
+            <p class="text-muted">Si activas la pausa, el chatbot dejará de responder con IA y enviará un mensaje de contingencia.</p>
+
+            <form action="{{ url_for('system.pause') }}" method="POST">
+                
+                <div class="form-check form-switch mb-4">
+                    <input class="form-check-input" type="checkbox" id="is_paused" name="is_paused" 
+                           style="width: 3em; height: 1.5em;" 
+                           {% if is_paused %}checked{% endif %}>
+                    <label class="form-check-label ms-3 mt-1 fw-bold" for="is_paused">
+                        {% if is_paused %}
+                            <span class="text-danger"><i class="bi bi-pause-circle-fill"></i> Sistema Pausado</span>
+                        {% else %}
+                            <span class="text-success"><i class="bi bi-play-circle-fill"></i> Sistema Activo</span>
+                        {% endif %}
+                    </label>
+                </div>
+
+                <div class="mb-3">
+                    <label for="message" class="form-label fw-bold">Mensaje de Contingencia (Respuesta Automática)</label>
+                    <textarea class="form-control" id="message" name="message" rows="3" required>{{ message }}</textarea>
+                    <div class="form-text">Este mensaje se enviará a cualquier usuario que escriba mientras el sistema esté pausado.</div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-save"></i> Guardar Configuración
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

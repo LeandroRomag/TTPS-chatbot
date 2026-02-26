@@ -1,0 +1,31 @@
+:root {
+    --primary-color: #8B2C2C;
+    --primary-hover: #a33535;
+    --primary-dark: #7a2626;
+}
+
+/* Utilidades generales */
+.text-primary-custom {
+    color: var(--primary-color) !important;
+}
+
+.btn-primary-custom {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary-custom:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+    color: white;
+}
+
+/* Gradiente para auth */
+.auth-gradient {
+    background: linear-gradient(
+        135deg,
+        var(--primary-color) 0%,
+        #5a1c1c 100%
+    );
+}

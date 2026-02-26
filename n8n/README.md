@@ -26,13 +26,39 @@ Esta carpeta contiene la configuración de **n8n** para ejecutar:
 |-------------|----------|
 | Node.js | >= 18 (si modo local) |
 | Docker | Recomendado |
-| Qdrant Cloud | API Key |
-| OpenAI / Groq | API Key |
+| Qdrant local |
+| Groq | API Key |
 
 ---
 
 ### ▶ Ejecución con Docker 
-docker-compose up -d
+1. docker-compose up -d
+
+2. Descargar el modelo de Embeddings (Obligatorio) 
+
+  docker exec -it ollama ollama pull nomic-embed-text
+
+## 🔌 Configuración de n8n
+Entra a n8n en: http://localhost:5678
+
+Importar Workflows:
+
+Ve a la carpeta /workflows de este repo.
+
+En n8n, crea un nuevo workflow y selecciona Import from File. Importa tanto el de Ingesta como el del Chatbot.
+
+Credenciales:
+
+Deberás configurar tus propias API Keys de Groq en el nodo correspondiente.
+
+Para Qdrant, asegúrate de que la URL apunte a http://qdrant:6333.
+
+📂 Cómo cargar documentos (Ingesta)
+Abre el workflow de RAG Ingestion Process.
+
+Ejecútalo y sube el PDF de la cátedra que quieras que el bot aprenda.
+
+Verifica que los datos se hayan cargado en el dashboard de Qdrant: http://localhost:6333/dashboard.
 
 Luego abrir: 
 http://localhost:5678

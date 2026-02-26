@@ -46,5 +46,13 @@ logs/
 
 # Local data (SQLite DB and artifacts)
 data/docs.sqlite
-# If you store sample PDFs locally, optionally ignore them:
-# data/*.pdf
+
+n8n/data
+n8n/.env
+n8n/.n8n
+n8n/n8n_data
+n8n/ollama_data
+n8n/qdrant_data
+
+
+n8n/data/database.sqlite

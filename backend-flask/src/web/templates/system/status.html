@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Estado del Sistema - UNLP{% endblock %}
+
+{% block body %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Monitor de Estado del Sistema</h2>
+        <a href="{{ url_for('status.index') }}" class="btn btn-primary">
+            <i class="bi bi-arrow-clockwise"></i> Actualizar
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <small class="text-muted">Última verificación: <strong>{{ last_check }}</strong></small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Servicio</th>
+                            <th>Estado</th>
+                            <th>Código</th>
+                            <th>Latencia</th>
+                            <th>URL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for service in services %}
+                        <tr>
+                            <td class="ps-4 fw-bold">{{ service.name }}</td>
+                            <td>
+                                {% if service.is_active %}
+                                    <span class="badge bg-success rounded-pill">Operativo</span>
+                                {% else %}
+                                    <span class="badge bg-danger rounded-pill">{{ service.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td><code>{{ service.code }}</code></td>
+                            <td class="font-monospace text-muted">{{ service.latency }}</td>
+                            <td>
+                                <small class="text-muted d-block text-truncate" style="max-width: 250px;">
+                                    {{ service.url }}
+                                </small>
+                                {% if service.error %}
+                                    <small class="text-danger">{{ service.error }}</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
