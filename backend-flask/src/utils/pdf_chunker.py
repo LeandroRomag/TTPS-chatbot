@@ -20,7 +20,7 @@ class PDFChunker:
             print(f"❌ Error al convertir PDF: {e}")
             raise
         
-        # Guardar markdown para debug 
+        # Guardar markdown para debug (opcional)
         debug_folder = Path(pdf_path).parent / 'debug'
         debug_folder.mkdir(exist_ok=True)
         md_file = debug_folder / f"{Path(pdf_path).stem}_debug.md"
@@ -239,12 +239,13 @@ class PDFChunker:
                 f"{filename}_{i}_{chunk['title']}".encode()
             ).hexdigest()
             
-            # Estructura que n8n espera: pageContent en payload, metadata anidado
+            # ✅ ESTRUCTURA CORRECTA: pageContent en nivel superior, metadata anidado
             doc = {
                 'id': chunk_id,
-                'text': chunk['content'],  # Se usa para embeddings en Python
+                'text': chunk['content'],  # Para embeddings en Python
+                'pageContent': chunk['content'],  # ✅ NIVEL SUPERIOR para n8n
                 'metadata': {
-                    'pageContent': chunk['content'],  # n8n lo busca aquí
+                    # NO incluir pageContent aquí
                     'filename': filename,
                     'section_title': chunk['title'],
                     'section_level': chunk['level'],

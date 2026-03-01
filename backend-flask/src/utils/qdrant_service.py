@@ -41,7 +41,7 @@ class QdrantService:
         Inserta chunks con sus embeddings en Qdrant
         
         Args:
-            chunks: Lista de chunks con estructura {id, text, metadata}
+            chunks: Lista de chunks con estructura {id, text, pageContent, metadata}
             embeddings: Lista de vectores de embeddings
             batch_size: Tamaño del batch para inserción
             
@@ -55,14 +55,15 @@ class QdrantService:
             # Preparar puntos
             points = []
             for chunk, embedding in zip(chunks, embeddings):
-                # ✅ CORRECCIÓN: El payload ya viene con pageContent en metadata
-                # Estructura esperada: chunk = {id, text, metadata: {pageContent, filename, ...}}
-                payload = chunk['metadata']
+                # ✅ ESTRUCTURA CORRECTA: pageContent y metadata separados
+                payload = {
+                    'pageContent': chunk.get('pageContent', chunk.get('text', '')),  # ✅ Nivel superior
+                    'metadata': chunk['metadata']  # ✅ Metadata anidada
+                }
                 
-                # Validar que pageContent existe
-                if 'pageContent' not in payload:
-                    print(f"⚠️ Advertencia: chunk {chunk['id']} no tiene pageContent, agregándolo...")
-                    payload['pageContent'] = chunk['text']
+                # Validación adicional
+                if not payload['pageContent']:
+                    print(f"⚠️ Advertencia: chunk {chunk['id']} tiene pageContent vacío")
                 
                 points.append(
                     PointStruct(
@@ -97,25 +98,27 @@ class QdrantService:
     def delete_by_document_id(self, document_id: int) -> bool:
         """Elimina todos los chunks de un documento"""
         try:
-            print(f"🗑️ Eliminando chunks del documento {document_id}...")
+            print(f"🗑️ Eliminando chunks del documento {document_id} de Qdrant...")
             
             self.client.delete(
                 collection_name=self.collection_name,
                 points_selector=Filter(
                     must=[
                         FieldCondition(
-                            key="document_id",
+                            key="metadata.document_id",  # ✅ Ahora está en metadata
                             match=MatchValue(value=document_id)
                         )
                     ]
                 )
             )
             
-            print(f"✅ Chunks del documento {document_id} eliminados")
+            print(f"✅ Chunks del documento {document_id} eliminados de Qdrant")
             return True
             
         except Exception as e:
             print(f"❌ Error eliminando de Qdrant: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def get_chunks_by_document(self, document_id: int, limit: int = 100) -> List[Dict]:
@@ -126,7 +129,7 @@ class QdrantService:
                 scroll_filter=Filter(
                     must=[
                         FieldCondition(
-                            key="document_id",
+                            key="metadata.document_id",  # ✅ Ahora está en metadata
                             match=MatchValue(value=document_id)
                         )
                     ]
@@ -138,9 +141,13 @@ class QdrantService:
             
             chunks = []
             for point in results[0]:
+                # Mantener estructura con pageContent y metadata
                 chunks.append({
                     'id': point.id,
-                    'payload': point.payload
+                    'payload': {
+                        'pageContent': point.payload.get('pageContent', ''),
+                        **point.payload.get('metadata', {})
+                    }
                 })
             
             return chunks
@@ -158,7 +165,7 @@ class QdrantService:
                 query_filter = Filter(
                     must=[
                         FieldCondition(
-                            key="document_id",
+                            key="metadata.document_id",  # ✅ Ahora está en metadata
                             match=MatchValue(value=document_id)
                         )
                     ]
@@ -176,7 +183,10 @@ class QdrantService:
                 {
                     'id': hit.id,
                     'score': hit.score,
-                    'payload': hit.payload
+                    'payload': {
+                        'pageContent': hit.payload.get('pageContent', ''),
+                        **hit.payload.get('metadata', {})
+                    }
                 }
                 for hit in results
             ]
@@ -195,7 +205,7 @@ class QdrantService:
                 query_filter = Filter(
                     must=[
                         FieldCondition(
-                            key="document_id",
+                            key="metadata.document_id",  # ✅ Ahora está en metadata
                             match=MatchValue(value=document_id)
                         )
                     ]
@@ -211,16 +221,16 @@ class QdrantService:
             
             samples = []
             for point in results[0]:
-                payload = point.payload.copy()
-                
-                # Truncar pageContent para que sea más legible
-                if 'pageContent' in payload:
-                    content = payload['pageContent']
-                    payload['pageContent'] = content[:250] + "..." if len(content) > 250 else content
+                # Truncar pageContent
+                page_content = point.payload.get('pageContent', '')
+                truncated = page_content[:250] + "..." if len(page_content) > 250 else page_content
                 
                 samples.append({
                     'id': point.id,
-                    'payload': payload
+                    'payload': {
+                        'pageContent': truncated,
+                        'metadata': point.payload.get('metadata', {})
+                    }
                 })
             
             return samples
