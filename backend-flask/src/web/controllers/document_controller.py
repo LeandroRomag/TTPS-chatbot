@@ -2,30 +2,27 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from src.core.board.document import Document
 from src.core.database import db
 from src.web.controllers.auth_controller import login_required 
+from src.utils.pdf_chunker import process_pdf_file
+from src.utils.embeddings import EmbeddingService  
+from src.utils.qdrant_service import QdrantService  
 import os
-import requests
-import hashlib  # <--- NUEVA IMPORTACIÓN
+import hashlib
 from werkzeug.utils import secure_filename
 
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'data')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-# --- CONFIGURACIÓN DE EXTENSIONES PERMITIDAS ---
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'md'}
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# --- NUEVA FUNCIÓN AUXILIAR: CALCULAR HASH ---
 def calculate_file_hash(file_stream):
     """Calcula el hash SHA256 de un archivo para verificar duplicados por contenido."""
     sha256_hash = hashlib.sha256()
-    # Leemos el archivo en bloques de 4KB para no saturar la memoria
     for byte_block in iter(lambda: file_stream.read(4096), b""):
         sha256_hash.update(byte_block)
-    
-    # IMPORTANTE: Reiniciar el puntero del archivo al inicio después de leerlo
     file_stream.seek(0)
     return sha256_hash.hexdigest()
 
@@ -77,45 +74,36 @@ def create_post():
         return redirect(url_for("document.create"))
 
     if file:
-        # --- NUEVA VALIDACIÓN: VERIFICAR DUPLICADO POR CONTENIDO (HASH) ---
+        # --- VALIDACIÓN: VERIFICAR DUPLICADO POR CONTENIDO (HASH) ---
         try:
-            # 1. Calculamos el hash del archivo que se está subiendo ahora
             incoming_hash = calculate_file_hash(file)
-            
-            # 2. Obtenemos todos los documentos existentes para comparar
-            # (Nota: Si tienes miles de archivos, lo ideal sería guardar el hash en la BD para no leer discos)
             existing_docs = db.session.query(Document).all()
             
             for doc in existing_docs:
                 if doc.file_path and os.path.exists(doc.file_path):
-                    # Abrimos cada archivo existente y calculamos su hash
                     with open(doc.file_path, 'rb') as f_existing:
                         existing_hash = calculate_file_hash(f_existing)
                         
-                        # Si los hashes coinciden, el contenido es idéntico
                         if incoming_hash == existing_hash:
                             flash(f"Este archivo ya existe en el sistema (Documento: '{doc.title}'). No se permite subir duplicados.", "warning")
                             return redirect(url_for("document.create"))
         except Exception as e:
             print(f"Error verificando duplicados: {e}")
-            # Si falla la verificación, permitimos continuar o lanzamos error según prefieras.
-            # Aquí solo lo logueamos para no bloquear el flujo crítico si falla la lectura de disco.
 
         save_path = None
         try:
-            # --- PASO 1: GUARDAR ARCHIVO FÍSICO TEMPORALMENTE ---
+            # --- PASO 1: GUARDAR ARCHIVO FÍSICO ---
             filename = secure_filename(file.filename)
             save_path = os.path.join(UPLOAD_FOLDER, filename)
             
-            # Doble chequeo por si el nombre de archivo ya existe físicamente (aunque el contenido sea distinto)
             if os.path.exists(save_path):
-                # Generar un nombre único si colisiona
                 base, ext = os.path.splitext(filename)
                 import uuid
                 filename = f"{base}_{uuid.uuid4().hex[:6]}{ext}"
                 save_path = os.path.join(UPLOAD_FOLDER, filename)
 
             file.save(save_path)
+            print(f"💾 Archivo guardado: {save_path}")
 
             # --- PASO 2: PREPARAR BASE DE DATOS (SIN COMMIT) ---
             new_doc = Document(
@@ -125,65 +113,85 @@ def create_post():
                 uploaded_by=session["user_id"] 
             )
             db.session.add(new_doc)
-            
-            db.session.flush() 
+            db.session.flush()
+            print(f"📝 Documento preparado en BD (ID: {new_doc.id})")
 
-            # --- PASO 3: INTENTAR ENVIAR A N8N ---
-            n8n_webhook = os.getenv("N8N_WEBHOOK_PDF")
+            # --- PASO 3: PROCESAR PDF Y GENERAR EMBEDDINGS ---
+            ext = filename.rsplit('.', 1)[1].lower()
             
-            if not n8n_webhook:
-                raise Exception("La URL del Webhook de n8n no está configurada.")
-
-            n8n_success = False
-            
-            with open(save_path, 'rb') as f:
-                # Determinamos el content-type correcto
-                ext = filename.rsplit('.', 1)[1].lower()
-                if ext == 'pdf':
-                    mime_type = 'application/pdf'
-                elif ext in ['doc', 'docx']:
-                    mime_type = 'application/msword'
-                elif ext in ['txt', 'md']:
-                    mime_type = 'text/plain'
-                else:
-                    mime_type = 'application/octet-stream'
-
-                files = {'file': (filename, f, mime_type)}
-                payload = {
-                    'title': title or filename, 
-                    'description': description,
-                    'document_id': new_doc.id
-                }
+            if ext == 'pdf':
+                print(f"📄 Procesando PDF con chunking estructurado...")
                 
-                print(f"📤 Enviando a n8n (Intento de validación): {n8n_webhook}")
-                response = requests.post(n8n_webhook, files=files, data=payload, timeout=60)
-                
-                if response.status_code == 200:
-                    n8n_success = True
-                else:
-                    print(f"⚠️ n8n falló con código: {response.status_code}")
-
-            # --- PASO 4: DECISIÓN FINAL ---
-            if n8n_success:
-                db.session.commit()
-                flash("Documento procesado correctamente por la IA y guardado.", "success")
+                try:
+                    # 3.1 Generar chunks por secciones
+                    chunks = process_pdf_file(
+                        save_path,
+                        metadata={
+                            'document_id': new_doc.id,
+                            'title': title or filename,
+                            'description': description,
+                            'uploaded_by': session["user_id"],
+                            'filename': filename
+                        }
+                    )
+                    print(f"✅ Generados {len(chunks)} chunks estructurados")
+                    
+                    # 3.2 Generar embeddings
+                    print(f"🔄 Generando embeddings...")
+                    embedding_service = EmbeddingService()
+                    texts = [chunk['text'] for chunk in chunks]
+                    embeddings = embedding_service.get_embeddings(texts, batch_size=10, prefix="passage: ")
+                    print(f"✅ Embeddings generados")
+                    
+                    # 3.3 Insertar en Qdrant
+                    print(f"📤 Insertando en Qdrant...")
+                    qdrant_service = QdrantService()
+                    success = qdrant_service.insert_chunks(chunks, embeddings, batch_size=100)
+                    
+                    if not success:
+                        raise Exception("Error insertando chunks en Qdrant")
+                    
+                    # 3.4 Todo OK - commit
+                    db.session.commit()
+                    flash(f"✅ Documento procesado correctamente. Se generaron {len(chunks)} secciones.", "success")
+                    print(f"🎉 Documento {new_doc.id} procesado completamente")
+                    
+                except Exception as e:
+                    print(f"❌ Error procesando PDF: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    
+                    # Rollback DB
+                    db.session.rollback()
+                    
+                    # Limpiar archivo
+                    if save_path and os.path.exists(save_path):
+                        os.remove(save_path)
+                        print("🧹 Archivo temporal eliminado")
+                    
+                    flash(f"Error procesando el documento: {str(e)}", "danger")
+                    return redirect(url_for("document.create"))
+            
             else:
-                raise Exception(f"n8n rechazó el documento (Status {response.status_code}). No se guardó nada.")
+                # Para otros formatos, por ahora solo guardar en BD
+                db.session.commit()
+                flash("Documento guardado. (Procesamiento de embeddings solo disponible para PDF)", "info")
 
             return redirect(url_for("document.index"))
 
         except Exception as e:
             db.session.rollback()
-            print(f"❌ Error crítico en creación: {e}")
+            print(f"❌ Error crítico: {e}")
+            import traceback
+            traceback.print_exc()
             
             if save_path and os.path.exists(save_path):
                 try:
                     os.remove(save_path)
-                    print("🧹 Archivo temporal eliminado tras fallo.")
                 except:
                     pass
 
-            flash(f"No se pudo crear el documento. Volver a intentar más tarde.", "danger")
+            flash(f"Error creando documento: {str(e)}", "danger")
             return redirect(url_for("document.create"))
 
     return redirect(url_for("document.create"))
@@ -192,44 +200,194 @@ def create_post():
 @document_blueprint.post("/delete/<int:id>")
 @login_required
 def delete(id):
-    # 1. Buscar el documento
+    """Eliminar documento de BD y Qdrant"""
     doc = db.session.query(Document).get(id)
     
     if not doc:
         flash("El documento no existe.", "danger")
         return redirect(url_for("document.index"))
 
-    n8n_delete_webhook = "http://localhost:5678/webhook-test/delete-document"
-    
     try:
-        # --- PASO 1: ENVIAR A N8N PRIMERO ---
-        print(f"📤 Solicitando eliminación a n8n primero...")
-        payload = {"document_id": doc.id}
+        print(f"🗑️ Eliminando documento {id}...")
         
-        response = requests.post(n8n_delete_webhook, json=payload, timeout=10)
+        # 1. Eliminar de Qdrant primero
+        qdrant_service = QdrantService()
+        qdrant_success = qdrant_service.delete_by_document_id(doc.id)
         
-        # --- PASO 2: VERIFICAR RESPUESTA DE N8N ---
-        if response.status_code == 200:
-            print("✅ n8n confirmó eliminación. Procediendo a borrar localmente.")
-            
-            # Borrar archivo físico
-            if doc.file_path and os.path.exists(doc.file_path):
-                try:
-                    os.remove(doc.file_path)
-                except OSError as e:
-                     print(f"⚠️ Advertencia: No se pudo borrar el archivo físico: {e}")
-            
-            # Borrar de BD
-            db.session.delete(doc)
-            db.session.commit()
-            
-            flash("Documento eliminado correctamente de la IA y del sistema.", "success")
-        else:
-            print(f"⚠️ n8n falló (Status {response.status_code}). Abortando eliminación local.")
-            flash(f"No se pudo eliminar. Volver a intentar más tarde.", "warning")
-            
+        if not qdrant_success:
+            print("⚠️ Error eliminando de Qdrant, pero continuando...")
+        
+        # 2. Eliminar archivo físico
+        if doc.file_path and os.path.exists(doc.file_path):
+            try:
+                os.remove(doc.file_path)
+                print(f"✅ Archivo físico eliminado: {doc.file_path}")
+            except OSError as e:
+                print(f"⚠️ No se pudo borrar archivo: {e}")
+        
+        # 3. Eliminar de BD
+        db.session.delete(doc)
+        db.session.commit()
+        
+        flash("Documento eliminado correctamente del sistema y de la IA.", "success")
+        print(f"✅ Documento {id} eliminado completamente")
+        
     except Exception as e:
-        print(f"❌ Error de conexión con n8n: {e}")
-        flash("Error de conexión con la IA. Intenta más tarde. El documento no se eliminó.", "danger")
+        print(f"❌ Error eliminando documento: {e}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        flash("Error eliminando el documento. Intenta más tarde.", "danger")
 
     return redirect(url_for("document.index"))
+
+
+@document_blueprint.get("/<int:id>/chunks")
+@login_required
+def view_chunks(id):
+    """Ver los chunks/secciones de un documento procesado"""
+    doc = db.session.query(Document).get(id)
+    
+    if not doc:
+        flash("El documento no existe.", "danger")
+        return redirect(url_for("document.index"))
+    
+    try:
+        qdrant_service = QdrantService()
+        chunks = qdrant_service.get_chunks_by_document(doc.id, limit=200)
+        
+        chunks_data = []
+        for chunk in chunks:
+            payload = chunk['payload']
+            chunks_data.append({
+                'section_title': payload.get('section_title', 'Sin título'),
+                'section_hierarchy': payload.get('section_hierarchy', ''),
+                'section_level': payload.get('section_level', 0),
+                'chunk_length': payload.get('chunk_length', 0),
+                'chunk_index': payload.get('chunk_index', 0),
+                'text_preview': payload.get('text', '')[:200] + '...'
+            })
+        
+        # Ordenar por chunk_index
+        chunks_data.sort(key=lambda x: x['chunk_index'])
+        
+        return render_template(
+            "document/chunks.html", 
+            document=doc, 
+            chunks=chunks_data,
+            active_page='documentos'
+        )
+        
+    except Exception as e:
+        print(f"Error obteniendo chunks: {e}")
+        import traceback
+        traceback.print_exc()
+        flash("No se pudieron cargar los chunks del documento.", "warning")
+        return redirect(url_for("document.index"))
+@document_blueprint.get("/api/list", strict_slashes=False)
+def api_list_documents():
+    """
+    Endpoint para n8n: devuelve la lista de documentos en JSON
+    Uso: GET /document/api/list
+    Respuesta: {"documentos": [{"id": 1, "nombre": "...", "descripcion": "...", "created_at": "...", "filepath": "..."}]}
+    """
+    try:
+        docs = db.session.query(Document).order_by(Document.uploaded_at.desc()).all()
+        
+        documentos = []
+        for doc in docs:
+            documentos.append({
+                "id": doc.id,
+                "nombre": doc.title,
+                "descripcion": doc.description,
+                "filepath": doc.file_path,
+                "created_at": doc.uploaded_at.isoformat() if doc.uploaded_at else None,
+                "uploaded_by": doc.uploaded_by,
+                
+            })
+        
+        return {
+            "total": len(documentos),
+            "documentos": documentos
+        }, 200
+        
+    except Exception as e:
+        print(f"Error en api_list_documents: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}, 500
+
+@document_blueprint.post("/api/search", strict_slashes=False)
+def api_search_chunks():
+    """
+    Endpoint para n8n: busca chunks en Qdrant con filtro opcional por documento
+    
+    Uso: POST /document/api/search
+    Body JSON:
+    {
+        "query": "texto a buscar",
+        "document_id": 19  // OPCIONAL: filtrar por documento específico
+    }
+    
+    Respuesta: 
+    {
+        "resultados": [
+            {
+                "score": 0.92,
+                "texto": "...",
+                "seccion": "...",
+                "document_id": 19,
+                "chunk_index": 5
+            }
+        ]
+    }
+    """
+    try:
+        data = request.get_json()
+        query = data.get("query", "").strip()
+        document_id = data.get("document_id")  # Opcional
+        
+        if not query:
+            return {"error": "Query vacía"}, 400
+        
+        # 1. Generar embedding de la query
+        embedding_service = EmbeddingService()
+        query_embedding = embedding_service.get_embedding(query, prefix="query: ")
+        
+        # 2. Buscar en Qdrant (con filtro de document_id si se proporciona)
+        qdrant_service = QdrantService()
+        resultados_qdrant = qdrant_service.search_similar(
+            query_vector=query_embedding,
+            limit=10,
+            document_id=document_id  # Pasa None si no se especifica
+        )
+        
+        # 3. Formatear respuesta
+        resultados = []
+        for hit in resultados_qdrant:
+            payload = hit['payload']
+            page_content = payload.get('pageContent', '')
+            texto_preview = page_content[:300] + "..." if len(page_content) > 300 else page_content
+            
+            resultados.append({
+                "score": round(hit['score'], 3),
+                "texto": texto_preview,
+                "seccion": payload.get('section_title', 'Sin título'),
+                "jerarquia": payload.get('section_hierarchy', ''),
+                "document_id": payload.get('document_id'),
+                "chunk_index": payload.get('chunk_index'),
+                "archivo": payload.get('filename', 'Desconocido')
+            })
+        
+        return {
+            "query": query,
+            "filtro_document_id": document_id,
+            "total_resultados": len(resultados),
+            "resultados": resultados
+        }, 200
+        
+    except Exception as e:
+        print(f"Error en api_search_chunks: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"error": str(e)}, 500

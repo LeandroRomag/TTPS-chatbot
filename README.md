@@ -1,121 +1,148 @@
-# Chatbot Academico
+# Chatbot Académico - Facultad de Informática UNLP
 
-Este proyecto implementa un **chatbot académico con RAG (Retrieval-Augmented Generation)** que responde consultas de alumnos a través de **WhatsApp Business** utilizando documentos institucionales (PDFs) y una API de la facultad. Tiene como objetivo pasar a produccion en los servidores de la facultad.
+Asistente conversacional para estudiantes de la Facultad de Informática de la UNLP. Responde consultas sobre materias, horarios, correlativas, planes de estudio y documentos académicos vía WhatsApp.
 
-🔧 Requisitos
+## Arquitectura
 
-Python: 3.12.3
-Node.js	≥ 18
-Poetry 
-Docker	Recomendado (para n8n y Qdrant)
-Ngrok	Para exponer Flask públicamente
-Meta Cloud API	Cuenta configurada + Webhook verificado
-Una API key de Groq (https://console.groq.com/)
+```
+WhatsApp → n8n (agente IA + tools) → Flask Backend → Qdrant (búsqueda semántica)
+                                    ↓
+                          APIs públicas UNLP
+```
 
-```mermaid
-graph LR
-A[WhatsApp Usuario] --> B[Meta Cloud API]
-B --> C[Flask Webhook]
-C --> D[n8n - Workflow RAG]
-D --> E[Qdrant - Vector Store]
-D --> F[LLM - Groq/OpenAI]
-C <-- Respuesta JSON -- D
+- **n8n**: orquesta el agente de IA (Groq/Gemini) y las herramientas
+- **Flask**: backend que procesa PDFs, genera embeddings y expone la API de búsqueda
+- **Qdrant**: base de datos vectorial para búsqueda semántica en documentos
+- **HuggingFace**: modelo `intfloat/multilingual-e5-large` para embeddings
 
-* Flask recibe mensajes desde WhatsApp (webhook).
+---
 
-* n8n procesa el RAG: chunking, embeddings, búsqueda y generación.
+## Requisitos
 
-* Qdrant almacena vectores de los documentos.
+- Python 3.12+
+- [Poetry](https://python-poetry.org/)
+- Docker (para n8n y Qdrant)
+- Cuenta en [HuggingFace](https://huggingface.co/) (opcional, hay fallback local)
+- Cuenta en [Groq](https://console.groq.com/) o Google Gemini (https://aistudio.google.com/api-keys) RECOMENDADO
 
-* Admin Web (Vue) permite subir PDFs y ver logs.
+---
 
-## 📂 Estructura del Repositorio
-TTPS-chatbot/
-├─ backend-flask/ # Webhook, API interna, normalización números, envío mensajes
-├─ n8n/ # Workflows de ingesta + búsqueda + embedding
-├─ frontend-admin/ # Panel web para subir docs y ver logs
-├─ data/ # Persistencia local (docs y logs)
-└─ README.md # Este archivo
+## Instalación
 
-## Configuración inicial
+### 1. Clonar el repositorio
 
-1) Instalar dependencias
-```powershell
+```bash
+git clone <repo-url>
+cd backend-flask
+```
+
+### 2. Instalar dependencias Python
+
+```bash
 poetry install
 ```
 
-2) Crear `.env` en la raíz con al menos:
-```
-GROQ_API_KEY=tu_api_key
-GROQ_MODEL=llama-3.1-8b-instant
-GROQ_TEMPERATURE=0.2
-GROQ_MAX_TOKENS=512
+### 3. Configurar variables de entorno
 
-# RAG (tamaños por defecto, ajustables)
-RAG_CHUNK_SIZE=500
-RAG_CHUNK_OVERLAP=80
-RAG_PER_CHUNK_MAX_CHARS=1600
-RAG_TOP_K=10
-RAG_CONTEXT_CHARS=20000
+Crear un archivo `.env` en la raíz del proyecto:
+
+```env
+HUGGINGFACE_API_TOKEN=hf_xxxxxxxxxxxx   # acelera la generación de embeddings
+QDRANT_URL=http://localhost:6333
+SECRET_KEY=una-clave-secreta-cualquiera
+DATABASE_URL=sqlite:///db.sqlite3        # O tu URL de base de datos
 ```
 
-## Ejecutar en desarrollo
+### 4. Levantar Qdrant con Docker
 
-```powershell
-poetry run python app.py
+```bash
+En proceso...
 ```
 
-- API: http://127.0.0.1:5000
-- Chat UI: http://127.0.0.1:5000/chat
+### 5. Inicializar la base de datos y correr Flask
 
-## Uso
-
-1) Cargar un PDF
-- `POST /api/upload` (multipart/form-data) con campo `file`.
-- Respuesta: `{ ok, document_id, filename, chunks, warning? }`
-
-2) Preguntar en el chat
-- En la UI `/chat`, escribe tu pregunta. Puedes ajustar:
-	- Top K (trozos recuperados)
-	- Máx. contexto (chars) para esa pregunta
-- El backend recupera los trozos relevantes (BM25), arma el contexto y llama a Groq.
-
-3) Vía API
-- `POST /api/message`
-	- Body JSON mínimo: `{ "message": "tu pregunta" }`
-	- Opcionales: `top_k`, `max_context_chars`
-
-Respuesta típica:
-```
-{
-	"ok": true,
-	"rag": {
-		"chunks": [{ "document_id": 1, "chunk_index": 0, "score": 3.2 }, ...],
-		"context_chars": 15432,
-		"top_k": 10
-	},
-	"answer": "..."
-}
+```bash
+poetry run py app.py
 ```
 
-## Endpoints
-- `GET /health` -> `{ "status": "ok" }`
-- `GET /chat` -> UI del chat
-- `POST /api/upload` -> subir PDF
-- `POST /api/message` -> pregunta con RAG
-
-## Notas sobre límites y performance
-- El límite real lo impone la ventana del modelo (Groq). Como regla práctica, 1 token ≈ 4 caracteres. Deja margen para la respuesta.
-- `RAG_CONTEXT_CHARS` limita cuántos caracteres del contexto se envían al LLM. Puedes sobrescribir por petición con `max_context_chars`.
-- `RAG_PER_CHUNK_MAX_CHARS` limita el tamaño por chunk para evitar trozos gigantes.
-- `RAG_TOP_K` controla cuántos trozos intenta meter. Subirlo aumenta cobertura pero también latencia.
-
-## Solución de problemas
-- 429 Too Many Requests (rate limit de Groq): espera y reintenta. La app reintenta con backoff (configurable vía `GROQ_MAX_RETRIES`, `GROQ_BACKOFF_BASE`).
-- PDF escaneado sin texto: el extractor intenta PyMuPDF y OCR (si disponible). Si sigue vacío, verás un `warning` en la respuesta de `/api/upload`.
-- Base de datos: se usa SQLite en `data/docs.sqlite`. Si quieres reiniciar manualmente, puedes borrar ese archivo con la app detenida.
-
-## Prueba rápida (smoke tests)
-```powershell
-poetry run python quick_test.py
+Flask va a quedar corriendo en `http://0.0.0.0:5000`. Verificá que diga:
 ```
+* Running on http://127.0.0.1:5000
+* Running on http://192.168.X.X:5000
+```
+
+---
+
+## Configurar n8n
+
+### 1. Levantar n8n con Docker
+
+```bash
+En proceso..
+```
+
+Accedé a `http://localhost:5678`.
+
+### 2. Importar el workflow
+
+En n8n: **Settings → Import workflow** → subí el archivo `chatbot_unlp v8` del repositorio dentro de la carpeta /n8n/workflows
+
+### 3. Configurar credenciales en n8n
+
+Dentro del workflow configurá:
+- **Groq API**: tu API key de Groq (modelo `llama-3.3-70b-versatile`)
+- O **Google Gemini API**: como alternativa al modelo de lenguaje
+
+### 4. Apuntar los tools al backend Flask
+
+Los tools `buscar_en_documentos` y `consultar_documentos_disponibles` usan la IP local de tu máquina (no `localhost`, ya que n8n corre en Docker):
+
+```javascript
+// Reemplazá con tu IP local (la que muestra Flask al iniciar)
+url: 'http://192.168.X.X:5000/document/api/search'
+url: 'http://192.168.X.X:5000/document/api/list'
+
+
+## Cargar documentos académicos
+
+1. Abrí `http://localhost:5000` en el navegador
+2. Iniciá sesión con tu usuario
+3. Ir a **Documentos → Nuevo documento**
+4. Subí un PDF (programa de materia, reglamento, etc.)
+5. El sistema automáticamente:
+   - Divide el PDF en chunks por secciones
+   - Genera embeddings con `multilingual-e5-large` usando el prefijo `passage: `
+   - Indexa los vectores en Qdrant
+
+---
+
+## Cómo funciona la búsqueda semántica
+
+El modelo `multilingual-e5-large` requiere prefijos específicos para funcionar correctamente:
+
+| Uso | Prefijo |
+|-----|---------|
+| Indexar documentos | `passage: ` |
+| Consultas de búsqueda | `query: ` |
+
+Sin estos prefijos los vectores son incompatibles entre sí y la búsqueda devuelve resultados irrelevantes.
+
+---
+
+## Herramientas disponibles en el agente
+
+| Tool | Descripción |
+|------|-------------|
+| `consultar_materias` | Busca materias por nombre y devuelve su slug |
+| `consultar_detalle_materia` | Horarios, inicio de cursada y programa de una materia |
+| `consultar_horarios_aulas` | Días, horarios y aulas asignadas |
+| `consultar_cartelera_materia` | Novedades, fechas de finales e inscripciones |
+| `consultar_calendario` | Calendario académico oficial |
+| `consultar_planes` | Planes de estudio y correlativas por carrera |
+| `consultar_novedades_general` | Noticias generales de la facultad |
+| `consultar_ocupacion_aula` | Disponibilidad de un aula específica |
+| `buscar_en_documentos` | Búsqueda semántica en PDFs cargados |
+| `consultar_documentos_disponibles` | Lista los PDFs indexados con sus IDs |
+
+---
+

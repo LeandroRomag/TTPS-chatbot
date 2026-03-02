@@ -1,0 +1,768 @@
+{
+  "name": "Ingesta Universal PDFs - Optimizado",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "backup",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "b1ff65ff-7e70-4628-a5b1-62a6bb0c7a0e",
+      "name": "Qdrant Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [
+        -1648,
+        320
+      ],
+      "credentials": {
+        "qdrantApi": {
+          "id": "3Ql6eHH9TE253z77",
+          "name": "QdrantApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Add documents to semantic database",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Add PDF file",
+              "fieldType": "file",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        -2176,
+        464
+      ],
+      "id": "95e7df10-8491-4116-948b-87fbd8243437",
+      "name": "On form submission1",
+      "webhookId": "fa087950-57c2-44df-9542-e91970ad8fbe"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatbot-unlp",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "1f202a6c-a9c5-46c7-b848-a70b9e04d972",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        -960,
+        48
+      ],
+      "webhookId": "chatbot-unlp"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.message }}",
+        "options": {
+          "systemMessage": "Asistente académico Facultad Informática UNLP\n\nTOOLS:\n1. consultar_materias(busqueda?) → Catálogo de materias con slugs\n2. consultar_detalle_materia(slug) → Horarios, programa, correlativas\n3. consultar_horarios_aulas(slug) → Días, horarios y aulas\n4. consultar_cartelera_materia(slug) → Noticias e informacion sobre una materia especifica, sobre finales, cursadas , inscripciones , etc.\n5. consultar_calendario() → Fechas de exámenes y feriados\n6. consultar_planes(carrera?) → CORRELATIVAS\n7. consultar_novedades_general() → Noticias y eventos\n8. consultar_ocupacion_aula(slug) → Disponibilidad de aulas\n\n**Búsqueda en documentos:(qdrant)**\nPlanes de estudios de materias especifica y reglamentos y cronogramas.\n9b. buscar_en_documentos(busqueda, document_id?) → Búsqueda semántica en PDFs cargados\n   - Sin filtro: busca en todos los documentos\n   - Con document_id: busca solo en ese documento específico\n   - Ejemplo: Usuario: \"Explica la herencia en el documento de OO\"\n     → Primero llama consultar_documentos_disponibles() para obtener el ID\n     → Luego llama buscar_en_documentos(busqueda: \"herencia\", document_id: 19)\n\n### 🎯 PROTOCOLO DE BÚSQUEDA\n\n**Para consultas de materias:**\n1. Llama consultar_materias(busqueda: \"palabra_clave\")\n2. Extrae el slug del resultado JSON\n3. Úsalo en consultar_detalle_materia o consultar_horarios_aulas\nCORRELATIVAS:\n- Para buscar correlativas: consultar_planes(materia: \"nombre_materia\") -> \nconsultar_detalle_materia(slug) ->\n- Ejemplo: Usuario: \"Correlativas de Proyecto de Software\"\n  → consultar_planes(materia: \"proyecto software\")\n  → Respuesta incluye las correlativas extraídas del plan\n\nEjemplo:\nUsuario: \"Horarios de Orientación a Objetos 1\"\n→ consultar_materias(busqueda: \"objetos\")\n→ Resultado: {\"materias\": [{\"nombre\": \"Orientación a Objetos 1\", \"slug\": \"orientacion-a-objetos-1\"}]}\n→ consultar_detalle_materia(slug: \"orientacion-a-objetos-1\")\n\n### 📱 FORMATO WHATSAPP\n\n- NUNCA muestres listas de más de 10 items\n- Si consultar_materias devuelve 256 resultados SIN filtro:\n  → Di: \"Hay 256 materias. ¿Cuál buscas?\"\n  → NO muestres la tabla completa\n- Usa las listas JSON internamente, no las copies al usuario\n- Respuestas concisas y directas\n- Para consultar programas de materias -> buscar_en_documentos\n### ⚡ REGLAS\n\n- Prioriza APIs sobre Qdrant para datos en tiempo real\n- Usa Qdrant solo para conceptos/reglamentos/contenido académico\n- Si una búsqueda no da resultados, sugiere términos similares"
+        }
+      },
+      "id": "3e4943aa-0b97-48a3-bf15-3b93e0e81964",
+      "name": "AI Agent1",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        -704,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "548e8b54-6306-492c-a9b6-8be0f66a4209",
+              "name": "output",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -320,
+        48
+      ],
+      "id": "dc263d0b-12b4-4b8b-ba50-8ba170f23472",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "content": "## RAG Chatbot\n\n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 784,
+        "width": 1200,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1136,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "8ed71b0b-4309-4f57-abc8-d517f0273efd",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## PDF Ingestion Process (Backup)\nUsamos este flujo con una colection en forma de backup en caso de error en el funcionamiento de la generacion de embeddings en el backend. \n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 816,
+        "width": 1056,
+        "color": 3
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -2256,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "7f9515ae-d345-47ae-819b-9c23f6dcfbe9",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "delete-document",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2176,
+        112
+      ],
+      "id": "01d17e0c-ef62-4478-854c-4b965e086149",
+      "name": "Webhook2",
+      "webhookId": "5442fc88-6132-4aa4-bc09-cd8780a6fb4d"
+    },
+    {
+      "parameters": {
+        "resource": "point",
+        "operation": "deletePoints",
+        "collectionName": {
+          "__rl": true,
+          "value": "docs",
+          "mode": "list",
+          "cachedResultName": "docs"
+        },
+        "points": "=",
+        "filter": "={\n  \"must\": [\n    {\n      \"key\": \"metadata.document_id\",\n      \"match\": {\n        \"value\": \"{{ $json.body.document_id.toString() }}\"\n      }\n    }\n  ]\n}",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-qdrant.qdrant",
+      "typeVersion": 1,
+      "position": [
+        -1632,
+        112
+      ],
+      "id": "dcf2cd96-b4e4-4252-9c1f-b9c689f1b1e4",
+      "name": "Delete Points",
+      "credentials": {
+        "qdrantRestApi": {
+          "id": "sOYODFCqInCYC8b5",
+          "name": "Qdrant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -752,
+        -240
+      ],
+      "id": "b4dfda6d-54c3-4e8e-a771-684bd632f5f3",
+      "name": "When chat message received",
+      "webhookId": "3c1683bf-85d1-4881-8234-5398b66acd25"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nonratably-lushiest-alexandra.ngrok-free.dev/api/chat",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"message\": \"{{ $json.chatInput }}\" }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -544,
+        -240
+      ],
+      "id": "a6537711-7810-4093-8254-106a2491a57d",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "description": "Útil para consultar fechas de exámenes, inscripciones, cursadas y feriados. Devuelve el calendario académico oficial.",
+        "jsCode": "// 1. Hacemos la petición a la API de la UNLP\nconst response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://gestionapp.info.unlp.edu.ar/api/CALENDARIO_ACADEMICO',\n    json: true\n});\n\n// 2. Función para limpiar HTML (quita tags y espacios extra)\nfunction cleanHtml(text) {\n    if (!text) return '';\n    // Reemplaza cualquier tag HTML (<...>) por un salto de línea\n    let clean = text.replace(/<[^>]+>/g, '\\n');\n    // Reemplaza múltiples espacios/saltos por uno solo\n    clean = clean.replace(/\\s+/g, ' ')\n    .replace(/&aacute;/g,'á')\n    .replace(/&eacute;/g,'é')\n    .replace(/&iacute;/g,'í')\n    .replace(/&oacute;/g,'ó')\n    .replace(/&uacute;/g,'ú')\n    .replace(/&Aacute;/g,'Á')\n    .replace(/&Eacute;/g,'É')\n    .replace(/&Iacute;/g,'Í')\n    .replace(/&Oacute;/g,'Ó')\n    .replace(/&Uacute;/g,'Ú')\n      \n      .trim();\n    return clean;\n}\n\n// 3. Procesamos los datos para reducir tamaño\nconst cleanData = response.map(item => {\n    return {\n        calendario: item.nombre,\n        contenido: cleanHtml(item.contenido)\n    };\n});\n\n// 4. 🔥 CORRECCIÓN: Convertimos el objeto a TEXTO (String) para que el Agente lo entienda\nreturn JSON.stringify(cleanData);"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -352,
+        256
+      ],
+      "id": "7d356802-29c1-4517-b36a-9a26cf861d5f",
+      "name": "consultar_calendario"
+    },
+    {
+      "parameters": {
+        "description": "Obtiene el listado de todas las materias disponibles.",
+        "jsCode": "// 1. PETICIÓN A LA API\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  url: 'https://gestiondocente.info.unlp.edu.ar/api/v2/materias.json',\n  json: true\n});\n\n// 2. EXTRAER MATERIAS\nconst materias = response._embedded?.materias || [];\n\nif (materias.length === 0) {\n    return \"No se pudo obtener la lista de materias.\";\n}\n\n// 3. MAPEAR CON SLUG\nconst materiasConSlug = materias.map(m => ({\n    nombre: m.nombre?.trim() || \"Sin nombre\",\n    slug: m.slug || m._links?.self?.href?.split('/').pop() || \"\"\n})).filter(m => m.nombre !== \"Sin nombre\" && m.slug);\n\n// 4. FUNCIÓN NORMALIZAR AGRESIVA\nfunction normalizarAgresivo(texto) {\n    return texto\n        .toLowerCase()\n        // Quitar tildes\n        .normalize(\"NFD\")\n        .replace(/[\\u0300-\\u036f]/g, \"\")\n        // Singular/Plural: quitar 's' al final de palabras\n        .replace(/s\\b/g, \"\")\n        // Quitar artículos y preposiciones comunes\n        .replace(/\\b(de|a|la|el|los|las|y|en)\\b/g, \"\")\n        // Quitar espacios múltiples\n        .replace(/\\s+/g, \" \")\n        .trim();\n}\n\n// 5. FUNCIÓN DE SIMILITUD\nfunction calcularSimilitud(busqueda, nombreMateria) {\n    const norm1 = normalizarAgresivo(busqueda);\n    const norm2 = normalizarAgresivo(nombreMateria);\n    \n    // Si una es substring de la otra, es muy similar\n    if (norm1.includes(norm2) || norm2.includes(norm1)) {\n        return 0.95;\n    }\n    \n    // Calcular palabras en común\n    const palabras1 = norm1.split(\" \").filter(p => p.length > 2);\n    const palabras2 = norm2.split(\" \").filter(p => p.length > 2);\n    \n    if (palabras1.length === 0 || palabras2.length === 0) return 0;\n    \n    const palabrasComunes = palabras1.filter(p1 => \n        palabras2.some(p2 => p1.includes(p2) || p2.includes(p1))\n    ).length;\n    \n    return palabrasComunes / Math.max(palabras1.length, palabras2.length);\n}\n\n// 6. FILTRAR SI HAY BÚSQUEDA\nconst busqueda = (query?.busqueda || \"\").toLowerCase().trim();\n\nlet materiasFinales = materiasConSlug;\n\nif (busqueda) {\n    // Calcular similitud para cada materia\n    const materiasConScore = materiasConSlug.map(m => ({\n        ...m,\n        score: calcularSimilitud(busqueda, m.nombre)\n    }));\n    \n    // Ordenar por similitud descendente\n    materiasConScore.sort((a, b) => b.score - a.score);\n    \n    // Filtrar candidatos con score > 0.5 (50% de similitud)\n    materiasFinales = materiasConScore.filter(m => m.score > 0.5);\n    \n    if (materiasFinales.length === 0) {\n        // Si no hay coincidencias con fuzzy, intentar búsqueda simple\n        const normalizar = (texto) => texto\n            .toLowerCase()\n            .normalize(\"NFD\")\n            .replace(/[\\u0300-\\u036f]/g, \"\");\n        \n        const busquedaNormalizada = normalizar(busqueda);\n        \n        materiasFinales = materiasConSlug.filter(m => \n            normalizar(m.nombre).includes(busquedaNormalizada)\n        );\n        \n        if (materiasFinales.length === 0) {\n            return `❌ No encontré materias que coincidan con \"${query.busqueda}\". Intenta con otro término.`;\n        }\n    }\n    \n    // Quitar el campo 'score' antes de devolver\n    materiasFinales = materiasFinales.map(m => ({\n        nombre: m.nombre,\n        slug: m.slug\n    }));\n}\n\n// 7. ORDENAR (si no hay búsqueda, alfabético; si hay búsqueda, ya está ordenado por score)\nif (!busqueda) {\n    materiasFinales.sort((a, b) => a.nombre.localeCompare(b.nombre));\n}\n\n// 8. LIMITAR A 20 SI NO HAY FILTRO\nconst limite = busqueda ? Math.min(materiasFinales.length, 10) : 20;\nconst materiasLimitadas = materiasFinales.slice(0, limite);\n\n// 9. RETORNAR\nreturn JSON.stringify({\n    total: materiasFinales.length,\n    mostrando: materiasLimitadas.length,\n    materias: materiasLimitadas,\n    nota: busqueda \n        ? `Resultados para \"${query.busqueda}\" (mostrando ${materiasLimitadas.length} más relevantes)` \n        : \"Mostrando primeras 20 materias. Usa 'busqueda' para filtrar.\"\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"busqueda\": {\n      \"type\": \"string\",\n      \"description\": \"Texto opcional para filtrar materias (ej: 'matematica', 'objetos', 'base'). Si no se especifica, devuelve el catálogo completo.\"\n    }\n  },\n  \"required\": []\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        256
+      ],
+      "id": "c1f167e3-a115-437d-85d6-125d17adf4a6",
+      "name": "consultar_materias"
+    },
+    {
+      "parameters": {
+        "description": "Úsala para obtener información sobre carreras con sus respectivos planes de estudio que tienen materias y correlativas. ",
+        "jsCode": "// 1. OBTENER PARÁMETROS\nconst busquedaCarrera = (query?.carrera || \"\").toLowerCase().trim();\nconst busquedaMateria = (query?.materia || \"\").toLowerCase().trim();\n\n// 2. PETICIÓN AL ENDPOINT\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  url: 'https://gestionapp.info.unlp.edu.ar/api/PLANES_ESTUDIOS',\n  json: true\n});\n\nconst todosLosPlanes = Array.isArray(response) ? response : (response.planes || []);\n\n// 3. FUNCIÓN NORMALIZAR\nfunction normalizar(texto) {\n    return texto\n        .toLowerCase()\n        .normalize(\"NFD\")\n        .replace(/[\\u0300-\\u036f]/g, \"\");\n}\n\n// 4. FUNCIÓN LIMPIAR TEXTO\nfunction limpiarTexto(html) {\n    if (!html) return \"\";\n    return html\n        .replace(/<[^>]+>/g, ' ')\n        .replace(/&nbsp;/g, ' ')\n        .replace(/&aacute;/g, 'á')\n        .replace(/&eacute;/g, 'é')\n        .replace(/&iacute;/g, 'í')\n        .replace(/&oacute;/g, 'ó')\n        .replace(/&uacute;/g, 'ú')\n        .replace(/&ntilde;/g, 'ñ')\n        .replace(/&Ntilde;/g, 'Ñ')\n        .replace(/\\s+/g, ' ')\n        .trim();\n}\n\n// 5. PARSEAR PLAN Y CREAR ÍNDICE DE MATERIAS\nfunction parsearPlanHTML(plan) {\n    const html = plan.contenido || \"\";\n    const materias = [];\n    \n    // Regex para capturar filas: código, nombre, correlativas\n    const regex = /<tr[^>]*>\\s*<td[^>]*>([^<]+)<\\/td>\\s*<td[^>]*>([^<]+)<\\/td>\\s*<td[^>]*>([^<]*)<\\/td>\\s*<\\/tr>/gi;\n    \n    let match;\n    while ((match = regex.exec(html)) !== null) {\n        const codigo = limpiarTexto(match[1]);\n        const nombre = limpiarTexto(match[2]);\n        const correlativasRaw = limpiarTexto(match[3]);\n        \n        // Filtrar encabezados\n        if (codigo && \n            !codigo.includes('Código') && \n            !codigo.includes('SEMESTRE') && \n            !codigo.includes('AÑO') &&\n            nombre &&\n            !nombre.includes('Nombre')) {\n            \n            materias.push({\n                codigo: codigo,\n                nombre: nombre,\n                correlativasRaw: correlativasRaw\n            });\n        }\n    }\n    \n    return {\n        carrera: plan.nombre,\n        materias: materias\n    };\n}\n\n// 6. RESOLVER CORRELATIVAS (convertir códigos en nombres)\nfunction resolverCorrelativas(materia, todasMaterias) {\n    if (!materia.correlativasRaw || materia.correlativasRaw === \"Ninguna\") {\n        return [];\n    }\n    \n    // Separar códigos (pueden estar separados por /, -, o espacios)\n    const codigosRaw = materia.correlativasRaw.split(/[\\/\\-\\s]+/).filter(c => c.trim());\n    \n    const correlativasResueltas = codigosRaw.map(codigo => {\n        const codigoLimpio = codigo.trim();\n        \n        // Buscar el nombre de la materia por su código\n        const materiaCorrelativa = todasMaterias.find(m => m.codigo === codigoLimpio);\n        \n        if (materiaCorrelativa) {\n            return {\n                codigo: codigoLimpio,\n                nombre: materiaCorrelativa.nombre\n            };\n        } else {\n            // Si no encuentra el nombre, devuelve solo el código\n            return {\n                codigo: codigoLimpio,\n                nombre: null\n            };\n        }\n    });\n    \n    return correlativasResueltas;\n}\n\n// 7. CASO 1: BÚSQUEDA POR MATERIA ESPECÍFICA\nif (busquedaMateria) {\n    const resultados = [];\n    \n    todosLosPlanes.forEach(plan => {\n        const planParsed = parsearPlanHTML(plan);\n        \n        planParsed.materias.forEach(materia => {\n            if (normalizar(materia.nombre).includes(normalizar(busquedaMateria)) ||\n                normalizar(materia.codigo).includes(normalizar(busquedaMateria))) {\n                \n                // Resolver correlativas\n                const correlativas = resolverCorrelativas(materia, planParsed.materias);\n                \n                resultados.push({\n                    carrera: planParsed.carrera,\n                    codigo: materia.codigo,\n                    nombre: materia.nombre,\n                    correlativas: correlativas\n                });\n            }\n        });\n    });\n    \n    if (resultados.length === 0) {\n        return `❌ No encontré \"${query.materia}\" en ningún plan.`;\n    }\n    \n    // Formatear respuesta\n    if (resultados.length === 1) {\n        const m = resultados[0];\n        \n        if (m.correlativas.length === 0) {\n            return `${m.nombre} (${m.codigo}) - ${m.carrera}\\n\\n✅ No tiene correlativas (materia de primer año).`;\n        }\n        \n        const listaCorrelativas = m.correlativas.map(c => {\n            if (c.nombre) {\n                return `• ${c.nombre} (${c.codigo})`;\n            } else {\n                return `• ${c.codigo}`;\n            }\n        }).join('\\n');\n        \n        return `${m.nombre} (${m.codigo}) - ${m.carrera}\\n\\nCorrelativas:\\n${listaCorrelativas}`;\n        \n    } else {\n        // Múltiples resultados (misma materia en diferentes carreras)\n        const lista = resultados.map(m => {\n            const correlativasTexto = m.correlativas.length === 0 \n                ? \"Sin correlativas\" \n                : m.correlativas.map(c => c.nombre || c.codigo).join(', ');\n            \n            return `• ${m.carrera}: ${m.nombre} (${m.codigo})\\n  Correlativas: ${correlativasTexto}`;\n        }).join('\\n\\n');\n        \n        return `Encontré \"${query.materia}\" en ${resultados.length} planes:\\n\\n${lista}`;\n    }\n}\n\n// 8. CASO 2: SIN BÚSQUEDA → LISTAR CARRERAS\nif (!busquedaCarrera) {\n    const listaCarreras = todosLosPlanes.map(p => `• ${p.nombre}`).join('\\n');\n    return `Carreras disponibles:\\n\\n${listaCarreras}\\n\\n💡 Para correlativas: especifica la materia.`;\n}\n\n// 9. CASO 3: BÚSQUEDA POR CARRERA\nconst busquedaNormalizada = normalizar(busquedaCarrera);\n\nconst planesEncontrados = todosLosPlanes.filter(p => {\n    const nombreNormalizado = normalizar(p.nombre || \"\");\n    return nombreNormalizado.includes(busquedaNormalizada);\n});\n\nif (planesEncontrados.length === 0) {\n    const sugerencias = todosLosPlanes.map(p => `• ${p.nombre}`).join('\\n');\n    return `❌ No encontré \"${query.carrera}\".\\n\\nDisponibles:\\n${sugerencias}`;\n}\n\nif (planesEncontrados.length > 1) {\n    const opciones = planesEncontrados.map(p => `• ${p.nombre}`).join('\\n');\n    return `Encontré ${planesEncontrados.length} planes:\\n\\n${opciones}\\n\\n💡 Sé más específico.`;\n}\n\n// 10. DEVOLVER PLAN COMPLETO\nconst plan = parsearPlanHTML(planesEncontrados[0]);\n\nconst materiasResumen = plan.materias.slice(0, 10).map(m => {\n    const correlativas = resolverCorrelativas(m, plan.materias);\n    const correlativasTexto = correlativas.length === 0 \n        ? \"Ninguna\" \n        : correlativas.map(c => c.codigo).join(', ');\n    \n    return `${m.codigo} - ${m.nombre} | Correlativas: ${correlativasTexto}`;\n}).join('\\n');\n\nreturn `${plan.carrera}\\n\\nPrimeras 10 materias:\\n${materiasResumen}\\n\\n💡 Total: ${plan.materias.length} materias.`;",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"carrera\": {\n      \"type\": \"string\",\n      \"description\": \"Nombre de la carrera (ej: 'Informática', 'Sistemas'). Opcional.\"\n    },\n    \"materia\": {\n      \"type\": \"string\",\n      \"description\": \"Nombre de una materia específica para buscar sus correlativas. Opcional.\"\n    }\n  },\n  \"required\": []\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -352,
+        400
+      ],
+      "id": "5115720e-edb6-4160-8026-73ac5d863245",
+      "name": "consultar_planes"
+    },
+    {
+      "parameters": {
+        "description": "Obtiene horarios, fechas y programa usando el slug técnico.",
+        "jsCode": "// 1. OBTENCIÓN DIRECTA\nconst slug = query.slug;\n\n// 2. VALIDACIÓN\nif (!slug) {\n  return \"ERROR: La variable 'query' llegó vacía o sin slug. Asegúrate de consultar primero la lista de materias.\";\n}\n\n// 3. LLAMADA A LA API (Directa, sin modificar el slug)\ntry {\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gestiondocente.info.unlp.edu.ar/api/v2/materias/${slug}.json`,\n    json: true\n  });\n\n  // Función de limpieza de texto (quita HTML y espacios extra)\n  const clean = (t) => (t || \"No especificado\")\n    .replace(/<br\\s*\\/?>/gi, '\\n') // Cambia <br> por saltos de línea\n    .replace(/<[^>]*>?/gm, ' ')    // Quita resto de etiquetas HTML\n    .replace(/\\s+/g, ' ')          // Quita espacios dobles\n        .replace(/&aacute;/g,'á')\n    .replace(/&eacute;/g,'é')\n    .replace(/&iacute;/g,'í')\n    .replace(/&oacute;/g,'ó')\n    .replace(/&uacute;/g,'ú')\n    .replace(/&Aacute;/g,'Á')\n    .replace(/&Eacute;/g,'É')\n    .replace(/&Iacute;/g,'Í')\n    .replace(/&Oacute;/g,'Ó')\n    .replace(/&Uacute;/g,'Ú')\n    .trim();\n\n  // 4. RESPUESTA (IMPORTANTE: Debe ser texto/String)\n  return `✅ DATOS ENCONTRADOS PARA: ${response.nombre}\n- 📅 Inicio: ${clean(response.inicio_cursada)}\n- ⏰ Horarios: ${clean(response.horarios_cursada)}\n- 🔗 Programa: ${response.programa_url || \"No disponible\"}`;\n\n} catch (error) {\n  return `ERROR 404: No existe la materia con el slug '${slug}'. Verifica que el nombre sea correcto en la lista de materias.`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"slug\": {\n      \"type\": \"string\",\n      \"description\": \"El slug único de la materia obtenido previamente (ej: bases-de-datos)\"\n    }\n  },\n  \"required\": [\"slug\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        400
+      ],
+      "id": "6be36f2e-68d6-49da-bcb3-3d76475aaeaf",
+      "name": "consultar_detalle_materia"
+    },
+    {
+      "parameters": {
+        "description": "Úsala para obtener las noticias más recientes, fechas de inscripciones, elecciones, talleres y avisos generales de la Facultad de Informática. No requiere parámetros.",
+        "jsCode": "// 1. PETICIÓN AUTÓNOMA AL ENDPOINT DEL TIMELINE\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  url: 'https://gestiondocente.info.unlp.edu.ar/api/v2/timeline.json',\n  json: true\n});\n\n// 2. EXTRAER EL CONTENIDO RELEVANTE\nconst items = response._embedded?.content || [];\n\n// 3. PROCESAR Y LIMPIAR LAS NOTICIAS\nconst noticiasProcesadas = items.map(item => {\n    const data = item._embedded?.noticia;\n    if (!data) return null;\n\n    // Formatear la fecha a algo más legible\n    const fechaLimpia = data.fecha ? data.fecha.split('T')[0] : \"Fecha no disponible\";\n    \n    // Limpieza profunda de HTML del cuerpo de la noticia\n    const cuerpoLimpio = data.cuerpo\n        .replace(/<[^>]*>?/gm, ' ') // Quita etiquetas HTML\n        .replace(/&bull;/g, '•')     // Convierte viñetas\n        .replace(/&nbsp;/g, ' ')    // Quita espacios HTML\n        .replace(/&aacute;/g, 'á').replace(/&eacute;/g, 'é').replace(/&iacute;/g, 'í').replace(/&oacute;/g, 'ó').replace(/&uacute;/g, 'ú')\n        .replace(/&ntilde;/g, 'ñ').replace(/&iquest;/g, '¿')\n        .replace(/\\s+/g, ' ')       // Quita espacios múltiples\n        .trim();\n\n    // Devolvemos un string compacto por cada noticia\n    return `[${fechaLimpia}] TITULO: ${data.titulo}\\nRESUMEN: ${cuerpoLimpio.substring(0, 300)}...`;\n}).filter(n => n !== null);\n\n// 4. VALIDACIÓN DE RESULTADOS\nif (noticiasProcesadas.length === 0) {\n    return \"No hay noticias o actividades recientes en el timeline en este momento.\";\n}\n\n// 5. RETORNAR EL STRING PLANO AL AGENTE (Limitado a las últimas 8 noticias para no saturar)\nreturn \"NOVEDADES Y ACTIVIDADES RECIENTES DE LA FACULTAD:\\n\\n\" + noticiasProcesadas.slice(0, 8).join('\\n\\n---\\n\\n');"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        256
+      ],
+      "id": "49bc6d48-c9e3-4e38-96a2-0b3948462c2b",
+      "name": "consultar_novedades_general"
+    },
+    {
+      "parameters": {
+        "description": "Usala para consultar sobre noticias de una materia , tiene informacion de fechas de finales inscripciones y cursadas.",
+        "jsCode": "// 1. OBTENCIÓN DIRECTA\nconst slug = query.slug;\n\n// 2. VALIDACIÓN\nif (!slug) return \"ERROR: No llegó el slug.\";\n\ntry {\n  // 3. LLAMADA A LA API\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gestiondocente.info.unlp.edu.ar/api/v2/materias/${slug}/mensajes.json`,\n    qs: { limit: 5 }, // Traemos solo las últimas 5 para no saturar\n    json: true\n  });\n\n  // 4. EXTRACCIÓN CORRECTA (Aquí estaba el error antes)\n  // La API guarda la lista dentro de response._embedded.mensajes\n  const mensajes = response._embedded?.mensajes || [];\n\n  if (mensajes.length === 0) {\n    return `ℹ️ No hay novedades recientes publicadas en la cartelera de '${slug}'.`;\n  }\n\n  // 5. LIMPIEZA DE HTML (Vital porque la captura muestra mucho HTML sucio)\n  const clean = (t) => (t || \"\")\n    .replace(/<br\\s*\\/?>/gi, '\\n') // Convertimos <br> en saltos de línea reales\n    .replace(/<[^>]*>?/gm, '')     // Borramos el resto de etiquetas HTML\n    .replace(/&nbsp;/g, ' ')       // Quitamos espacios HTML\n    .replace(/\\s+/g, ' ')          // Colapsamos espacios múltiples\n        .replace(/&aacute;/g,'á')\n    .replace(/&eacute;/g,'é')\n    .replace(/&iacute;/g,'í')\n    .replace(/&oacute;/g,'ó')\n    .replace(/&uacute;/g,'ú')\n    .replace(/&Aacute;/g,'Á')\n    .replace(/&Eacute;/g,'É')\n    .replace(/&Iacute;/g,'Í')\n    .replace(/&Oacute;/g,'Ó')\n    .replace(/&Uacute;/g,'Ú')\n    .trim();\n\n  // 6. FORMATEO DE SALIDA\n  const lista = mensajes.map(m => {\n    const titulo = clean(m.titulo || m.asunto || \"Sin título\");\n    // Usamos updated_at o created_at según lo que venga\n    const fechaRaw = m.updated_at || m.created_at || m.fecha; \n    const fecha = fechaRaw ? fechaRaw.split('T')[0] : \"Fecha desc.\"; \n    const contenido = clean(m.cuerpo || m.mensaje).slice(0, 250); // Un poco más largo para que se entienda\n    \n    return `📌 *${titulo}* (${fecha})\\n\"${contenido}...\"`;\n  }).join(\"\\n\\n-------------------\\n\\n\");\n\n  return `📢 ÚLTIMAS NOVEDADES DE ${slug.toUpperCase()}:\\n\\n${lista}`;\n\n} catch (error) {\n  // Si falla, mostramos el error técnico para depurar mejor\n  const errorMsg = error.response?.data ? JSON.stringify(error.response.data) : error.message;\n  return `ERROR TÉCNICO: No pude acceder a los mensajes. Detalle: ${errorMsg}`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"slug\": {\n      \"type\": \"string\",\n      \"description\": \"El slug único de la materia (ej: orientacion-a-objetos-1)\"\n    }\n  },\n  \"required\": [\"slug\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -80,
+        400
+      ],
+      "id": "482f3a1a-e8ae-4cc8-a1a7-b2cacdcd72a4",
+      "name": "consultar_cartelera_materia"
+    },
+    {
+      "parameters": {
+        "description": "Obtiene el detalle exacto de días, horarios y aulas asignadas para las cursadas.",
+        "jsCode": "// 1. VALIDACIÓN\nconst slug = query?.slug;\nif (!slug) return \"❌ ERROR: No se especificó el slug de la materia.\";\n\ntry {\n  // 2. LLAMADA A LA API\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gestiondocente.info.unlp.edu.ar/api/v2/materias/${slug}/reservas.json`,\n    json: true\n  });\n\n  // 3. EXTRAER RESERVAS\n  const reservas = response._embedded?.reservas || [];\n\n  if (reservas.length === 0) {\n    return `ℹ️ No hay horarios confirmados para '${slug}' en este momento.`;\n  }\n\n  // 4. MAPEO DE DÍAS (la API devuelve números)\n  const DIAS = {\n    0: \"Lunes\",\n    1: \"Martes\", \n    2: \"Miércoles\",\n    3: \"Jueves\",\n    4: \"Viernes\",\n    5: \"Sábado\",\n    6: \"Domingo\"\n  };\n\n  // 5. PROCESAR CADA RESERVA\n  const horarios = reservas.map(r => {\n    // Día de la semana\n    const dia = DIAS[r.dia_semana] || \"Día no especificado\";\n    \n    // Horarios (la API usa hora_desde/hora_hasta, no hora_inicio/hora_fin)\n    let horario = \"Horario a confirmar\";\n    if (r.hora_desde && r.hora_hasta) {\n      const desde = r.hora_desde.slice(0, 5); // \"08:30:00-0300\" → \"08:30\"\n      const hasta = r.hora_hasta.slice(0, 5); // \"12:00:00-0300\" → \"12:00\"\n      horario = `${desde} a ${hasta}`;\n    }\n    \n    // Aula (está dentro de _embedded.aula)\n    let aula = \"Aula sin confirmar\";\n    if (r._embedded?.aula?.nombre) {\n      aula = r._embedded.aula.nombre;\n    }\n    \n    // Tipo de clase (está en _embedded.tipo_clase)\n    let tipo = \"Clase\";\n    if (r._embedded?.tipo_clase?.nombre) {\n      tipo = r._embedded.tipo_clase.nombre;\n    }\n    \n    // Período de validez (opcional pero útil)\n    let periodo = \"\";\n    if (r.fecha_desde && r.fecha_hasta) {\n      periodo = `\\n   📆 Válido: ${r.fecha_desde} al ${r.fecha_hasta}`;\n    }\n\n    return `🕒 **${dia} ${horario}**\\n   📍 ${aula} (${tipo})${periodo}`;\n  }).join(\"\\n\\n\");\n\n  // 6. RESPUESTA FINAL\n  return `📅 HORARIOS Y AULAS CONFIRMADAS PARA ${slug.toUpperCase()}:\\n\\n${horarios}`;\n\n} catch (error) {\n  // Manejo de errores específico\n  if (error.response?.status === 404) {\n    return `❌ No existe la materia con slug '${slug}'. Verifica el nombre en consultar_materias.`;\n  }\n  \n  const errorMsg = error.message || \"Error desconocido\";\n  return `⚠️ Error al consultar horarios: ${errorMsg}`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"slug\": {\n      \"type\": \"string\",\n      \"description\": \"El slug único de la materia\"\n    }\n  },\n  \"required\": [\"slug\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -352,
+        544
+      ],
+      "id": "d3f6a730-f218-4814-b477-e93894970f2a",
+      "name": "consultar_horarios_aulas"
+    },
+    {
+      "parameters": {
+        "description": "Obtiene la lista de reservas y disponibilidad de un aula física específica (ej: Aula 5, Aula 10).",
+        "jsCode": "// 1. OBTENCIÓN Y NORMALIZACIÓN\n// Como no tenemos lista de aulas, ayudamos a la IA convirtiendo \"Aula 5\" -> \"aula-5\"\nlet slug = query.slug;\n\nif (!slug) return \"ERROR: No llegó el identificador del aula.\";\n\n// Normalización técnica: minúsculas y espacios por guiones\nconst slugFinal = slug.toLowerCase().replace(/\\s+/g, '-').trim();\n\n// 2. FECHA DE HOY (Para filtrar y no traer historial viejo)\n// Calculamos la fecha actual en formato YYYY-MM-DD para el parámetro 'desde'\nconst hoy = new Date().toISOString().split('T')[0];\n\ntry {\n  // 3. LLAMADA A LA API\n  // Usamos el filtro 'desde' para ver solo lo futuro/actual\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `https://gestiondocente.info.unlp.edu.ar/api/v2/aulas/${slugFinal}/reservas.json`,\n    qs: { desde: hoy }, \n    json: true\n  });\n\n  // 4. ESTRATEGIA DE LECTURA (HATEOAS vs Directo)\n  const reservas = response._embedded?.reservas || response || [];\n\n  if (!Array.isArray(reservas) || reservas.length === 0) {\n    return `ℹ️ No encontré reservas registradas en el '${slugFinal}' a partir de hoy. Podría estar libre.`;\n  }\n\n  // 5. FORMATEO DE SALIDA\n  // Ordenamos por día/hora para que quede cronológico\n  const lista = reservas\n    .slice(0, 10) // Limitamos a 10 eventos para no llenar la pantalla\n    .map(r => {\n        const dia = r.dia || r.fecha || \"Fecha a confirmar\";\n        const hora = (r.hora_inicio && r.hora_fin) \n                     ? `${r.hora_inicio.slice(0,5)} a ${r.hora_fin.slice(0,5)}` \n                     : \"Horario desc.\";\n        \n        // Intentamos sacar el nombre de la materia o evento\n        let evento = \"Evento reservado\";\n        if (r.materia) {\n            evento = typeof r.materia === 'object' ? r.materia.nombre : r.materia;\n        } else if (r.evento) {\n            evento = r.evento;\n        }\n\n        return `📍 **${dia} [${hora}]**\\n   🎓 ${evento}`;\n    }).join(\"\\n\\n\");\n\n  return `📅 OCUPACIÓN DEL ${slugFinal.toUpperCase()}:\\n\\n${lista}`;\n\n} catch (error) {\n  return `ERROR 404: No pude encontrar el aula '${slugFinal}'. Verifica si el número es correcto (ej: Aula 5, Aula Magna).`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"slug\": {\n      \"type\": \"string\",\n      \"description\": \"El identificador del aula (ej: aula-5, aula-1b, aula-10)\"\n    }\n  },\n  \"required\": [\"slug\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -208,
+        544
+      ],
+      "id": "7dec1250-598d-4be2-9cd8-2a27477a4df0",
+      "name": "consultar_ocupacion_aula"
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1008,
+        304
+      ],
+      "id": "d6234d8b-f9e5-4f20-a899-023a0401175d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "I5g26NeVikM0WlOG",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -1120,
+        176
+      ],
+      "id": "8dc1140c-dfdb-40a4-aa87-e4ba8d280bb7",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "imZPf4YwW1uYOYwA",
+          "name": "Groq account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -864,
+        304
+      ],
+      "id": "7df5451b-e7fc-47e5-abc1-c43a1497ee15",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "modelName": "intfloat/multilingual-e5-large",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [
+        -1776,
+        512
+      ],
+      "id": "9baaea73-d621-4d14-8a71-7088c99a76e5",
+      "name": "Embeddings HuggingFace Inference",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "kEl04EhmFZVLaRZM",
+          "name": "HuggingFaceApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "pdf-ingestion",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2176,
+        288
+      ],
+      "id": "9b296b37-94da-43fd-b622-dbf430536945",
+      "name": "Webhook1",
+      "webhookId": "96a527ae-c950-4dca-9a5d-e1b2fd9e8f6e"
+    },
+    {
+      "parameters": {
+        "description": "Utiliza esta herramienta para buscar información institucional, reglamentos académicos, guías de trámites, planes de estudio , programas de materias , contexto histórico de la facultad.",
+        "jsCode": "// 1. OBTENER PARÁMETROS\nconst busqueda = query.busqueda || query.query || \"\";\nconst documentoId = query.document_id || null;\n\n// 2. VALIDACIÓN\nif (!busqueda || busqueda.trim().length === 0) {\n  return \"❌ ERROR: No especificaste qué buscar.\";\n}\n\n// 3. PREPARAR PAYLOAD\nconst payload = {\n  query: busqueda.trim()\n};\n\n// Si se especifica documento, agregarlo al filtro\nif (documentoId) {\n  payload.document_id = parseInt(documentoId);\n}\n\ntry {\n  // 4. LLAMADA AL ENDPOINT FLASK\n  const response = await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'http://192.168.1.11:5000/document/api/search',\n    json: true,\n    body: payload\n  });\n\n  // 5. VALIDACIÓN DE RESPUESTA\n  if (!response.resultados || response.resultados.length === 0) {\n    return `❌ No encontré resultados para \"${busqueda}\"${documentoId ? ` en el documento ${documentoId}` : ''}.`;\n  }\n\n  // 6. FORMATEO DE RESPUESTA\n  const filtroTexto = documentoId ? ` (filtrado por documento ${documentoId})` : '';\n  const lista = response.resultados.map((r, idx) => {\n    const porcentaje = Math.round(r.score * 100);\n    const archivo = r.archivo ? `📄 ${r.archivo}` : '';\n    const seccion = r.seccion ? `📌 ${r.seccion}` : '';\n    \n    return `${idx + 1}. **Relevancia: ${porcentaje}%**\\n   ${seccion}\\n   ${archivo}\\n   \"${r.texto}\"\\n   📍 Chunk ${r.chunk_index}`;\n  }).join('\\n\\n---\\n\\n');\n\n  return `🔍 RESULTADOS DE BÚSQUEDA${filtroTexto}:\\n\\n${lista}\\n\\n💡 Total: ${response.total_resultados} resultados encontrados.`;\n\n} catch (error) {\n  const errorMsg = error.response?.data?.error || error.message || 'Error desconocido';\n  return `⚠️ Error en la búsqueda: ${errorMsg}`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"busqueda\": {\n      \"type\": \"string\",\n      \"description\": \"Texto a buscar. Ej: 'herencia', 'polimorfismo', 'algoritmos'\"\n    },\n    \"document_id\": {\n      \"type\": \"number\",\n      \"description\": \"ID del documento específico (opcional). Si no se proporciona, busca en todos los documentos.\"\n    }\n  },\n  \"required\": [\"busqueda\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -544,
+        416
+      ],
+      "id": "e940faac-8514-4b0a-b66d-a2189217bb0a",
+      "name": "buscar_en_documentos"
+    },
+    {
+      "parameters": {
+        "description": "Lista los documentos disponibles en la base de conocimiento (PDFs cargados). Úsala antes de buscar_en_documentos cuando el usuario pregunte por un documento concreto (ej. \"busca en el apunte de OO\") para obtener el ID y luego filtrar por document_id.",
+        "jsCode": "try {\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'http://192.168.1.11:5000/document/api/list',\n    json: true\n  });\n\n  if (!response.documentos || response.documentos.length === 0) {\n    return \"No hay documentos cargados en la base de conocimiento.\";\n  }\n\n  const lista = response.documentos.map(d => \n    `• ID ${d.id}: ${d.nombre}${d.descripcion ? ` - ${d.descripcion}` : ''}`\n  ).join('\\n');\n\n  return `Documentos disponibles (${response.total}):\\n\\n${lista}\\n\\nPara buscar en uno solo, usa buscar_en_documentos(busqueda: \"...\", document_id: <ID>).`;\n} catch (error) {\n  const msg = error.response?.data?.error || error.message || 'Error desconocido';\n  return `Error al listar documentos: ${msg}`;\n}",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {},\n  \"required\": []\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        -704,
+        416
+      ],
+      "id": "2f46f934-8822-4b2d-b675-5c55d7948266",
+      "name": "consultar_documentos_disponibles"
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "filename",
+                "value": "={{ $json['Add PDF file'][0].filename}}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        -1536,
+        528
+      ],
+      "id": "7cfb840b-e54a-4fb4-a10e-6c29c33dc3e7",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkSize": 1500,
+        "chunkOverlap": 250,
+        "options": {
+          "splitCode": "markdown"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        -1632,
+        640
+      ],
+      "id": "dc525b6d-7083-44c8-b718-691a09904b52",
+      "name": "Recursive Character Text Splitter"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission1": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Delete Points",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_calendario": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_materias": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_planes": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_detalle_materia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_novedades_general": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_cartelera_materia": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_horarios_aulas": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_ocupacion_aula": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_en_documentos": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_documentos_disponibles": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "698fa787-b972-4294-8233-761e55960c89",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "615d98321702549b80c51c97368bc48a5e10e2061d7f6ee69487c275fc99ed59"
+  },
+  "id": "eDLgXAhRmz7PK8CrGe1tV",
+  "tags": []
+}

@@ -21,6 +21,8 @@ dependencies = [
     "phonenumbers (>=9.0.19,<10.0.0)",
     "flask-sqlalchemy-lite (>=0.2.1,<0.3.0)",
     "psycopg2-binary (>=2.9.11,<3.0.0)",
+    "pymupdf4llm (>=0.3.4,<0.4.0)",
+    "qdrant-client (>=1.17.0,<2.0.0)",
 ]
 
 

@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Secciones del Documento: {{ document.title }}</h2>
+    
+    <div class="alert alert-info">
+        <strong>Total de secciones:</strong> {{ chunks|length }}
+    </div>
+
+    <div class="accordion" id="chunksAccordion">
+        {% for chunk in chunks %}
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading{{ loop.index }}">
+                <button class="accordion-button collapsed" type="button" 
+                        data-bs-toggle="collapse" 
+                        data-bs-target="#collapse{{ loop.index }}">
+                    <strong>{{ chunk.section_title }}</strong>
+                    <span class="badge bg-secondary ms-2">Nivel {{ chunk.section_level }}</span>
+                    <span class="badge bg-info ms-2">{{ chunk.chunk_length }} caracteres</span>
+                </button>
+            </h2>
+            <div id="collapse{{ loop.index }}" 
+                 class="accordion-collapse collapse" 
+                 data-bs-parent="#chunksAccordion">
+                <div class="accordion-body">
+                    <p><strong>Jerarquía:</strong> {{ chunk.section_hierarchy }}</p>
+                    <hr>
+                    <p>{{ chunk.text_preview }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <a href="{{ url_for('document.index') }}" class="btn btn-secondary mt-3">Volver</a>
+</div>
+{% endblock %}
