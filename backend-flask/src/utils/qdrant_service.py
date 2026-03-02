@@ -47,13 +47,13 @@ class QdrantService:
             # Preparar puntos
             points = []
             for chunk, embedding in zip(chunks, embeddings):
-                # ✅ MÚLTIPLES ALIAS para compatibilidad con n8n/LangChain
+                # MÚLTIPLES ALIAS para compatibilidad con n8n/LangChain
                 content = chunk.get('pageContent', chunk.get('text', ''))
             
                 payload = {
                     'pageContent': content,  # Para n8n/LangChain
-                    'content': content,       # ✅ ALIAS adicional
-                    'text': content,          # ✅ ALIAS adicional
+                    'content': content,       #  adicional
+                    'text': content,          #  adicional
                     'metadata': chunk['metadata']
                 }
             
@@ -106,7 +106,7 @@ class QdrantService:
                 points_selector=Filter(
                     must=[
                         FieldCondition(
-                            key="metadata.document_id",  # ✅ Ahora está en metadata
+                            key="metadata.document_id",  
                             match=MatchValue(value=document_id)
                         )
                     ]
@@ -130,7 +130,7 @@ class QdrantService:
                 scroll_filter=Filter(
                     must=[
                         FieldCondition(
-                            key="metadata.document_id",  # ✅ Ahora está en metadata
+                            key="metadata.document_id",  
                             match=MatchValue(value=document_id)
                         )
                     ]
@@ -208,7 +208,7 @@ class QdrantService:
                 query_filter = Filter(
                     must=[
                         FieldCondition(
-                            key="metadata.document_id",  # ✅ Ahora está en metadata
+                            key="metadata.document_id", 
                             match=MatchValue(value=document_id)
                         )
                     ]

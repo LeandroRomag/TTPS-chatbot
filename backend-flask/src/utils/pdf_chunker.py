@@ -239,7 +239,7 @@ class PDFChunker:
                 f"{filename}_{i}_{chunk['title']}".encode()
             ).hexdigest()
             
-            #  ESTRUCTURA CORRECTA: pageContent en nivel superior, metadata anidado
+            #   pageContent en nivel superior, metadata anidado
             doc = {
                 'id': chunk_id,
                 'text': chunk['content'], 

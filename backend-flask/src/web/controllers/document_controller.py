@@ -366,7 +366,6 @@ def api_search_chunks():
         resultados = []
         for hit in resultados_qdrant:
             payload = hit['payload']
-            # ✅ CORREGIDO: Usar 'pageContent' en lugar de 'text'
             page_content = payload.get('pageContent', '')
             texto_preview = page_content[:300] + "..." if len(page_content) > 300 else page_content
             
