@@ -1,3 +1,6 @@
+from pydoc import text
+from sys import prefix
+
 import requests
 import os
 from typing import List
@@ -23,7 +26,7 @@ class EmbeddingService:
         except Exception as e:
             raise ValueError(f"No se puede inicializar ni API remota ni local: {str(e)}")
     
-    def get_embeddings(self, texts: List[str], batch_size: int = 10) -> List[List[float]]:
+    def get_embeddings(self, texts: List[str], batch_size: int = 10, prefix: str = "") -> List[List[float]]:
         """
         Obtiene embeddings para una lista de textos
         
@@ -35,6 +38,8 @@ class EmbeddingService:
             Lista de embeddings (vectores)
         """
         # Si no hay token, usar servicio local
+        if prefix:
+            texts = [f"{prefix}{t}" for t in texts]
         if not self.hf_token:
             return self.local_service.get_embeddings(texts, batch_size=32)
         
@@ -76,9 +81,8 @@ class EmbeddingService:
         
         return all_embeddings
     
-    def get_embedding(self, text: str) -> List[float]:
-        """Obtiene embedding para un solo texto"""
-        return self.get_embeddings([text])[0]
+    def get_embedding(self, text: str, prefix: str = "") -> List[float]:
+        return self.get_embeddings([text], prefix=prefix)[0]
 
 
 # Opción alternativa: Usar modelo local (más rápido pero requiere más recursos)
@@ -91,8 +95,9 @@ class LocalEmbeddingService:
         self.model = SentenceTransformer('intfloat/multilingual-e5-large')
         print("✅ Modelo cargado")
     
-    def get_embeddings(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
-        """Genera embeddings localmente"""
+    def get_embeddings(self, texts: List[str], batch_size: int = 32, prefix: str = "") -> List[List[float]]:
+        if prefix:
+            texts = [f"{prefix}{t}" for t in texts]
         print(f"🔄 Generando embeddings para {len(texts)} textos...")
         embeddings = self.model.encode(
             texts,
@@ -102,5 +107,5 @@ class LocalEmbeddingService:
         )
         return embeddings.tolist()
     
-    def get_embedding(self, text: str) -> List[float]:
-        return self.get_embeddings([text])[0]
+    def get_embedding(self, text: str, prefix: str = "") -> List[float]:
+        return self.get_embeddings([text], prefix=prefix)[0]

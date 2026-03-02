@@ -39,32 +39,29 @@ class QdrantService:
     def insert_chunks(self, chunks: List[Dict[str, Any]], embeddings: List[List[float]], batch_size: int = 100) -> bool:
         """
         Inserta chunks con sus embeddings en Qdrant
-        
-        Args:
-            chunks: Lista de chunks con estructura {id, text, pageContent, metadata}
-            embeddings: Lista de vectores de embeddings
-            batch_size: Tamaño del batch para inserción
-            
-        Returns:
-            True si fue exitoso, False en caso contrario
         """
         try:
             if len(chunks) != len(embeddings):
                 raise ValueError(f"Número de chunks ({len(chunks)}) no coincide con embeddings ({len(embeddings)})")
-            
+        
             # Preparar puntos
             points = []
             for chunk, embedding in zip(chunks, embeddings):
-                # ✅ ESTRUCTURA CORRECTA: pageContent y metadata separados
+                # ✅ MÚLTIPLES ALIAS para compatibilidad con n8n/LangChain
+                content = chunk.get('pageContent', chunk.get('text', ''))
+            
                 payload = {
-                    'pageContent': chunk.get('pageContent', chunk.get('text', '')),  # ✅ Nivel superior
-                    'metadata': chunk['metadata']  # ✅ Metadata anidada
+                    'pageContent': content,  # Para n8n/LangChain
+                    'content': content,       # ✅ ALIAS adicional
+                    'text': content,          # ✅ ALIAS adicional
+                    'metadata': chunk['metadata']
                 }
-                
-                # Validación adicional
-                if not payload['pageContent']:
-                    print(f"⚠️ Advertencia: chunk {chunk['id']} tiene pageContent vacío")
-                
+            
+                # Validación
+                if not content or len(content.strip()) < 10:
+                    print(f"⚠️ Advertencia: chunk {chunk['id']} tiene contenido vacío o muy corto")
+                    continue  # Saltar chunks vacíos
+            
                 points.append(
                     PointStruct(
                         id=chunk['id'],
@@ -72,23 +69,27 @@ class QdrantService:
                         payload=payload
                     )
                 )
-            
+        
+            if not points:
+                print("❌ No hay puntos válidos para insertar")
+                return False
+        
             # Insertar en batches
             total_inserted = 0
             for i in range(0, len(points), batch_size):
                 batch = points[i:i + batch_size]
-                
+            
                 self.client.upsert(
                     collection_name=self.collection_name,
                     points=batch
                 )
-                
+            
                 total_inserted += len(batch)
                 print(f"✅ Insertados {total_inserted}/{len(points)} puntos")
-            
+        
             print(f"🎉 Todos los {len(points)} puntos insertados exitosamente")
             return True
-            
+        
         except Exception as e:
             print(f"❌ Error insertando en Qdrant: {e}")
             import traceback
@@ -157,42 +158,44 @@ class QdrantService:
             return []
     
     def search_similar(self, query_vector: List[float], limit: int = 5, document_id: int = None) -> List[Dict]:
-        """Busca chunks similares"""
+        """Busca chunks similares usando el índice HNSW nativo de Qdrant"""
         try:
-            # Filtro opcional por documento
             query_filter = None
             if document_id:
                 query_filter = Filter(
                     must=[
                         FieldCondition(
-                            key="metadata.document_id",  # ✅ Ahora está en metadata
+                            key="metadata.document_id",
                             match=MatchValue(value=document_id)
                         )
                     ]
                 )
-            
-            results = self.client.search(
+
+            results = self.client.query_points(
                 collection_name=self.collection_name,
-                query_vector=query_vector,
+                query=query_vector,
                 query_filter=query_filter,
                 limit=limit,
-                with_payload=True
-            )
-            
+                with_payload=True,
+                with_vectors=False
+            ).points
+
             return [
                 {
-                    'id': hit.id,
-                    'score': hit.score,
+                    'id': point.id,
+                    'score': point.score,
                     'payload': {
-                        'pageContent': hit.payload.get('pageContent', ''),
-                        **hit.payload.get('metadata', {})
+                        'pageContent': point.payload.get('pageContent', ''),
+                        **point.payload.get('metadata', {})
                     }
                 }
-                for hit in results
+                for point in results
             ]
-            
+
         except Exception as e:
             print(f"❌ Error buscando en Qdrant: {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     def get_sample_payloads(self, document_id: int = None, limit: int = 5) -> List[Dict]:

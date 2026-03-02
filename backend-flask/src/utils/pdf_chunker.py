@@ -239,13 +239,13 @@ class PDFChunker:
                 f"{filename}_{i}_{chunk['title']}".encode()
             ).hexdigest()
             
-            # ✅ ESTRUCTURA CORRECTA: pageContent en nivel superior, metadata anidado
+            #  ESTRUCTURA CORRECTA: pageContent en nivel superior, metadata anidado
             doc = {
                 'id': chunk_id,
-                'text': chunk['content'],  # Para embeddings en Python
-                'pageContent': chunk['content'],  # ✅ NIVEL SUPERIOR para n8n
+                'text': chunk['content'], 
+                'pageContent': chunk['content'],  
                 'metadata': {
-                    # NO incluir pageContent aquí
+                    
                     'filename': filename,
                     'section_title': chunk['title'],
                     'section_level': chunk['level'],

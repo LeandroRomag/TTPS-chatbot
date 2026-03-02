@@ -140,7 +140,7 @@ def create_post():
                     print(f"🔄 Generando embeddings...")
                     embedding_service = EmbeddingService()
                     texts = [chunk['text'] for chunk in chunks]
-                    embeddings = embedding_service.get_embeddings(texts, batch_size=10)
+                    embeddings = embedding_service.get_embeddings(texts, batch_size=10, prefix="passage: ")
                     print(f"✅ Embeddings generados")
                     
                     # 3.3 Insertar en Qdrant
@@ -284,7 +284,7 @@ def view_chunks(id):
         traceback.print_exc()
         flash("No se pudieron cargar los chunks del documento.", "warning")
         return redirect(url_for("document.index"))
-@document_blueprint.get("/api/list")
+@document_blueprint.get("/api/list", strict_slashes=False)
 def api_list_documents():
     """
     Endpoint para n8n: devuelve la lista de documentos en JSON
@@ -317,7 +317,7 @@ def api_list_documents():
         traceback.print_exc()
         return {"error": str(e)}, 500
 
-@document_blueprint.post("/api/search")
+@document_blueprint.post("/api/search", strict_slashes=False)
 def api_search_chunks():
     """
     Endpoint para n8n: busca chunks en Qdrant con filtro opcional por documento
@@ -352,7 +352,7 @@ def api_search_chunks():
         
         # 1. Generar embedding de la query
         embedding_service = EmbeddingService()
-        query_embedding = embedding_service.get_embedding(query)
+        query_embedding = embedding_service.get_embedding(query, prefix="query: ")
         
         # 2. Buscar en Qdrant (con filtro de document_id si se proporciona)
         qdrant_service = QdrantService()
@@ -366,9 +366,13 @@ def api_search_chunks():
         resultados = []
         for hit in resultados_qdrant:
             payload = hit['payload']
+            # ✅ CORREGIDO: Usar 'pageContent' en lugar de 'text'
+            page_content = payload.get('pageContent', '')
+            texto_preview = page_content[:300] + "..." if len(page_content) > 300 else page_content
+            
             resultados.append({
                 "score": round(hit['score'], 3),
-                "texto": payload.get('text', '')[:300] + "...",  # Primeros 300 chars
+                "texto": texto_preview,
                 "seccion": payload.get('section_title', 'Sin título'),
                 "jerarquia": payload.get('section_hierarchy', ''),
                 "document_id": payload.get('document_id'),
