@@ -55,4 +55,9 @@ n8n/ollama_data
 n8n/qdrant_data
 
 
-n8n/data/database.sqlite
+n8n/data/database.sqlite3
+data/docs.sqlite
+docs/
+docs/REVISION_INGESTA_Y_N8N.md 
+backend-flask/data/docs.sqlite
+backend-flask/data/debug 
