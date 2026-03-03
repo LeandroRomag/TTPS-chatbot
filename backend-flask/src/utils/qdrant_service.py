@@ -241,3 +241,42 @@ class QdrantService:
             import traceback
             traceback.print_exc()
             return []
+
+    def get_chunks_by_section(self, section_base: str, document_id: int) -> List[Dict]:
+        """Obtiene todos los chunks de una sección (todas sus partes)"""
+        try:
+            results = self.client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="metadata.document_id",
+                            match=MatchValue(value=document_id)
+                        )
+                    ]
+                ),
+                limit=200,
+                with_payload=True,
+                with_vectors=False
+            )
+
+            hermanos = []
+            for point in results[0]:
+                title = point.payload.get('metadata', {}).get('section_title', '')
+                # Matchea "PROGRAMA ANALÍTICO (parte 1)", "(parte 2)", etc.
+                if title.startswith(section_base):
+                    hermanos.append({
+                        'id': point.id,
+                        'score': 1.0,
+                        'payload': {
+                            'pageContent': point.payload.get('pageContent', ''),
+                            **point.payload.get('metadata', {})
+                        }
+                    })
+            # Ordenar por chunk_index para que salgan en orden
+            hermanos.sort(key=lambda x: x['payload'].get('chunk_index', 0))
+            return hermanos
+
+        except Exception as e:
+            print(f"❌ Error buscando hermanos: {e}")
+            return []
