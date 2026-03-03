@@ -284,6 +284,7 @@ def view_chunks(id):
         traceback.print_exc()
         flash("No se pudieron cargar los chunks del documento.", "warning")
         return redirect(url_for("document.index"))
+    
 @document_blueprint.get("/api/list", strict_slashes=False)
 def api_list_documents():
     """
@@ -358,19 +359,53 @@ def api_search_chunks():
         qdrant_service = QdrantService()
         resultados_qdrant = qdrant_service.search_similar(
             query_vector=query_embedding,
-            limit=10,
-            document_id=document_id  # Pasa None si no se especifica
+            limit=20,
+            document_id=document_id
         )
-        
-        # 3. Formatear respuesta
+
+        # 3. Re-ranking por section_title y section_hierarchy
+        def calcular_score_final(hit, query):
+            score = hit['score']
+            payload = hit['payload']
+    
+            # Normalizar: minúsculas y sin tildes
+            def normalizar(texto):
+                import unicodedata
+                texto = texto.lower()
+                return ''.join(
+                    c for c in unicodedata.normalize('NFD', texto)
+                    if unicodedata.category(c) != 'Mn'
+                )
+    
+            query_norm = normalizar(query)
+            section_title = normalizar(payload.get('section_title', ''))
+            section_hierarchy = normalizar(payload.get('section_hierarchy', ''))
+    
+            palabras = [w for w in query_norm.split() if len(w) > 3]
+    
+            matches_title = sum(1 for w in palabras if w in section_title)
+            matches_hierarchy = sum(1 for w in palabras if w in section_hierarchy)
+    
+            score += matches_title * 0.05
+            score += matches_hierarchy * 0.02
+    
+            return score
+
+        resultados_qdrant.sort(
+            key=lambda h: calcular_score_final(h, query),
+            reverse=True
+        )
+        resultados_qdrant = resultados_qdrant[:4]
+
+        # 4. Formatear respuesta
         resultados = []
         for hit in resultados_qdrant:
             payload = hit['payload']
             page_content = payload.get('pageContent', '')
-            texto_preview = page_content[:300] + "..." if len(page_content) > 300 else page_content
+            texto_preview = page_content[:1500] + "..." if len(page_content) > 1500 else page_content
             
             resultados.append({
-                "score": round(hit['score'], 3),
+                "score": round(calcular_score_final(hit, query), 3),
                 "texto": texto_preview,
                 "seccion": payload.get('section_title', 'Sin título'),
                 "jerarquia": payload.get('section_hierarchy', ''),

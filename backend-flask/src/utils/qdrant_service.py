@@ -47,13 +47,11 @@ class QdrantService:
             # Preparar puntos
             points = []
             for chunk, embedding in zip(chunks, embeddings):
-                # MÚLTIPLES ALIAS para compatibilidad con n8n/LangChain
+                
                 content = chunk.get('pageContent', chunk.get('text', ''))
             
                 payload = {
                     'pageContent': content,  # Para n8n/LangChain
-                    'content': content,       #  adicional
-                    'text': content,          #  adicional
                     'metadata': chunk['metadata']
                 }
             
@@ -158,7 +156,6 @@ class QdrantService:
             return []
     
     def search_similar(self, query_vector: List[float], limit: int = 5, document_id: int = None) -> List[Dict]:
-        """Busca chunks similares usando el índice HNSW nativo de Qdrant"""
         try:
             query_filter = None
             if document_id:
@@ -171,13 +168,14 @@ class QdrantService:
                     ]
                 )
 
+            # Traemos más resultados para poder re-rankear
             results = self.client.query_points(
                 collection_name=self.collection_name,
                 query=query_vector,
                 query_filter=query_filter,
-                limit=limit,
+                limit=20,
                 with_payload=True,
-                with_vectors=False
+                with_vectors=False,
             ).points
 
             return [
@@ -190,7 +188,7 @@ class QdrantService:
                     }
                 }
                 for point in results
-            ]
+            ][:limit]
 
         except Exception as e:
             print(f"❌ Error buscando en Qdrant: {e}")
