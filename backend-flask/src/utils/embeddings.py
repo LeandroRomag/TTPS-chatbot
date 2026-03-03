@@ -12,7 +12,7 @@ class EmbeddingService:
     def __init__(self):
         self.hf_token = os.getenv("HUGGINGFACE_API_TOKEN")
         self.model = "intfloat/multilingual-e5-large"
-        self.api_url = f"https://router.huggingface.co/models/{self.model}"
+        self.api_url = f"https://router.huggingface.co/hf-inference/models/{self.model}"
         self.local_service = None
         
         if not self.hf_token:

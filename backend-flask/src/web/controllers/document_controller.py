@@ -284,6 +284,7 @@ def view_chunks(id):
         traceback.print_exc()
         flash("No se pudieron cargar los chunks del documento.", "warning")
         return redirect(url_for("document.index"))
+    
 @document_blueprint.get("/api/list", strict_slashes=False)
 def api_list_documents():
     """
@@ -319,33 +320,11 @@ def api_list_documents():
 
 @document_blueprint.post("/api/search", strict_slashes=False)
 def api_search_chunks():
-    """
-    Endpoint para n8n: busca chunks en Qdrant con filtro opcional por documento
-    
-    Uso: POST /document/api/search
-    Body JSON:
-    {
-        "query": "texto a buscar",
-        "document_id": 19  // OPCIONAL: filtrar por documento específico
-    }
-    
-    Respuesta: 
-    {
-        "resultados": [
-            {
-                "score": 0.92,
-                "texto": "...",
-                "seccion": "...",
-                "document_id": 19,
-                "chunk_index": 5
-            }
-        ]
-    }
-    """
+    import re
     try:
         data = request.get_json()
         query = data.get("query", "").strip()
-        document_id = data.get("document_id")  # Opcional
+        document_id = data.get("document_id")
         
         if not query:
             return {"error": "Query vacía"}, 400
@@ -354,23 +333,90 @@ def api_search_chunks():
         embedding_service = EmbeddingService()
         query_embedding = embedding_service.get_embedding(query, prefix="query: ")
         
-        # 2. Buscar en Qdrant (con filtro de document_id si se proporciona)
+        # 2. Buscar en Qdrant
         qdrant_service = QdrantService()
         resultados_qdrant = qdrant_service.search_similar(
             query_vector=query_embedding,
-            limit=10,
-            document_id=document_id  # Pasa None si no se especifica
+            limit=20,
+            document_id=document_id
         )
-        
-        # 3. Formatear respuesta
+
+        # 3. Re-ranking por section_title y section_hierarchy
+        def calcular_score_final(hit, query):
+            score = hit['score']
+            payload = hit['payload']
+
+            def normalizar(texto):
+                import unicodedata
+                texto = texto.lower()
+                return ''.join(
+                    c for c in unicodedata.normalize('NFD', texto)
+                    if unicodedata.category(c) != 'Mn'
+                )
+
+            query_norm = normalizar(query)
+            section_title = normalizar(payload.get('section_title', ''))
+            section_hierarchy = normalizar(payload.get('section_hierarchy', ''))
+
+            palabras = [w for w in query_norm.split() if len(w) > 3]
+            matches_title = sum(1 for w in palabras if w in section_title)
+            matches_hierarchy = sum(1 for w in palabras if w in section_hierarchy)
+
+            score += matches_title * 0.05
+            score += matches_hierarchy * 0.02
+
+            return score
+
+        resultados_qdrant.sort(
+            key=lambda h: calcular_score_final(h, query),
+            reverse=True
+        )
+
+        # 4. Expandir chunks de secciones multi-parte
+        expandidos = []
+        secciones_expandidas = set()
+
+        for hit in resultados_qdrant:
+            section_title = hit['payload'].get('section_title', '')
+            doc_id = hit['payload'].get('document_id')
+
+            match = re.match(r'^(.+?)\s*\(parte \d+\)$', section_title)
+
+            if match and doc_id:
+                section_base = match.group(1).strip()
+                clave = f"{doc_id}_{section_base}"
+
+                if clave not in secciones_expandidas:
+                    secciones_expandidas.add(clave)
+                    hermanos = qdrant_service.get_chunks_by_section(section_base, doc_id)
+                    expandidos.extend(hermanos)
+            else:
+                expandidos.append(hit)
+
+        # 5. Deduplicar por chunk_index + document_id
+        vistos_ids = set()
+        resultados_final = []
+        for hit in expandidos:
+            uid = f"{hit['payload'].get('document_id')}_{hit['payload'].get('chunk_index')}"
+            if uid not in vistos_ids:
+                vistos_ids.add(uid)
+                resultados_final.append(hit)
+
+        resultados_qdrant = resultados_final
+
+        # Solo limitar a 4 si no hubo expansión de secciones
+        if not secciones_expandidas:
+            resultados_qdrant = resultados_qdrant[:4]
+
+        # 6. Formatear respuesta
         resultados = []
         for hit in resultados_qdrant:
             payload = hit['payload']
             page_content = payload.get('pageContent', '')
-            texto_preview = page_content[:300] + "..." if len(page_content) > 300 else page_content
-            
+            texto_preview = page_content[:1500] + "..." if len(page_content) > 1500 else page_content
+
             resultados.append({
-                "score": round(hit['score'], 3),
+                "score": round(calcular_score_final(hit, query), 3),
                 "texto": texto_preview,
                 "seccion": payload.get('section_title', 'Sin título'),
                 "jerarquia": payload.get('section_hierarchy', ''),
@@ -378,14 +424,14 @@ def api_search_chunks():
                 "chunk_index": payload.get('chunk_index'),
                 "archivo": payload.get('filename', 'Desconocido')
             })
-        
+
         return {
             "query": query,
             "filtro_document_id": document_id,
             "total_resultados": len(resultados),
             "resultados": resultados
         }, 200
-        
+
     except Exception as e:
         print(f"Error en api_search_chunks: {e}")
         import traceback

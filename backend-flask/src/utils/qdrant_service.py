@@ -47,13 +47,11 @@ class QdrantService:
             # Preparar puntos
             points = []
             for chunk, embedding in zip(chunks, embeddings):
-                # MÚLTIPLES ALIAS para compatibilidad con n8n/LangChain
+                
                 content = chunk.get('pageContent', chunk.get('text', ''))
             
                 payload = {
                     'pageContent': content,  # Para n8n/LangChain
-                    'content': content,       #  adicional
-                    'text': content,          #  adicional
                     'metadata': chunk['metadata']
                 }
             
@@ -158,7 +156,6 @@ class QdrantService:
             return []
     
     def search_similar(self, query_vector: List[float], limit: int = 5, document_id: int = None) -> List[Dict]:
-        """Busca chunks similares usando el índice HNSW nativo de Qdrant"""
         try:
             query_filter = None
             if document_id:
@@ -171,13 +168,14 @@ class QdrantService:
                     ]
                 )
 
+            # Traemos más resultados para poder re-rankear
             results = self.client.query_points(
                 collection_name=self.collection_name,
                 query=query_vector,
                 query_filter=query_filter,
-                limit=limit,
+                limit=20,
                 with_payload=True,
-                with_vectors=False
+                with_vectors=False,
             ).points
 
             return [
@@ -190,7 +188,7 @@ class QdrantService:
                     }
                 }
                 for point in results
-            ]
+            ][:limit]
 
         except Exception as e:
             print(f"❌ Error buscando en Qdrant: {e}")
@@ -242,4 +240,43 @@ class QdrantService:
             print(f"❌ Error obteniendo samples: {e}")
             import traceback
             traceback.print_exc()
+            return []
+
+    def get_chunks_by_section(self, section_base: str, document_id: int) -> List[Dict]:
+        """Obtiene todos los chunks de una sección (todas sus partes)"""
+        try:
+            results = self.client.scroll(
+                collection_name=self.collection_name,
+                scroll_filter=Filter(
+                    must=[
+                        FieldCondition(
+                            key="metadata.document_id",
+                            match=MatchValue(value=document_id)
+                        )
+                    ]
+                ),
+                limit=200,
+                with_payload=True,
+                with_vectors=False
+            )
+
+            hermanos = []
+            for point in results[0]:
+                title = point.payload.get('metadata', {}).get('section_title', '')
+                # Matchea "PROGRAMA ANALÍTICO (parte 1)", "(parte 2)", etc.
+                if title.startswith(section_base):
+                    hermanos.append({
+                        'id': point.id,
+                        'score': 1.0,
+                        'payload': {
+                            'pageContent': point.payload.get('pageContent', ''),
+                            **point.payload.get('metadata', {})
+                        }
+                    })
+            # Ordenar por chunk_index para que salgan en orden
+            hermanos.sort(key=lambda x: x['payload'].get('chunk_index', 0))
+            return hermanos
+
+        except Exception as e:
+            print(f"❌ Error buscando hermanos: {e}")
             return []
