@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  flask:
+    build: 
+      context: ./backend-flask
+      dockerfile: Dockerfile
+    container_name: flask
+    ports:
+      - "5000:5000"
+    environment:
+      - HUGGINGFACE_API_TOKEN=${HUGGINGFACE_API_TOKEN}
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - QDRANT_URL=http://qdrant:6333
+      - N8N_WEBHOOK_ASK=http://n8n:5678/webhook-test/chatbot-unlp
+      - N8N_WEBHOOK_PDF=http://n8n:5678/webhook-test/pdf-ingestion
+
+      - WHATSAPP_TOKEN=${WHATSAPP_TOKEN}
+      - PHONE_NUMBER_ID=${PHONE_NUMBER_ID}
+    volumes:
+      - ./data:/app/data
+    networks:
+      - unlp_network
+    depends_on:
+      - qdrant
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=admin123
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+    volumes:
+      - ./n8n/data:/home/node/.n8n
+    networks:
+      - unlp_network
+    depends_on:
+      - flask
+      - qdrant
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ./n8n/qdrant_data:/qdrant/storage:z
+    networks:
+      - unlp_network
+
+
+networks:
+  unlp_network:
+    driver: bridge
