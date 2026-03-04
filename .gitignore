@@ -57,7 +57,15 @@ n8n/qdrant_data
 
 n8n/data/database.sqlite3
 data/docs.sqlite
-docs/
-docs/REVISION_INGESTA_Y_N8N.md 
+
 backend-flask/data/docs.sqlite
 backend-flask/data/debug 
+backend-flask/data/*
+backend-flask/data/
+backend-flask/*.sqlite3
+backend-flask/.venv
+n8n/data/
+n8n/qdrant_data/
+n8n/ollama_data/
+**/__pycache__/
+*.pyc
