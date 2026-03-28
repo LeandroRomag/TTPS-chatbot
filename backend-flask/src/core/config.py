@@ -28,7 +28,7 @@ class DevelopmentConfig(Config):
                 drivername="postgresql",
                 username=os.getenv('DB_USER', 'postgres'),
                 password=os.getenv('DB_PASSWORD', 'postgres'),
-                host=os.getenv('DB_HOST', 'localhost'),
+                host=os.getenv('DB_HOST', 'localhost'),  
                 port=int(os.getenv('DB_PORT', '5432')),
                 database=os.getenv('DB_NAME', 'chatbot_db')
             ),

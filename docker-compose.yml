@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   flask:
     build: 
@@ -11,11 +9,15 @@ services:
     environment:
       - HUGGINGFACE_API_TOKEN=${HUGGINGFACE_API_TOKEN}
       - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=${DATABASE_URL}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}
       - QDRANT_URL=http://qdrant:6333
       - N8N_WEBHOOK_ASK=http://n8n:5678/webhook-test/chatbot-unlp
       - N8N_WEBHOOK_PDF=http://n8n:5678/webhook-test/pdf-ingestion
-
       - WHATSAPP_TOKEN=${WHATSAPP_TOKEN}
       - PHONE_NUMBER_ID=${PHONE_NUMBER_ID}
     volumes:
@@ -23,7 +25,22 @@ services:
     networks:
       - unlp_network
     depends_on:
+      - postgres
       - qdrant
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+    networks:
+      - unlp_network
 
   n8n:
     image: n8nio/n8n:latest
@@ -54,7 +71,6 @@ services:
       - ./n8n/qdrant_data:/qdrant/storage:z
     networks:
       - unlp_network
-
 
 networks:
   unlp_network:
