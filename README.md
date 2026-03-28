@@ -184,6 +184,9 @@ docker compose up
 # Levantar en segundo plano
 docker compose up -d
 
+# Resetear la base de datos de Flask / PostgreSQL
+docker compose exec flask flask --app app.py reset-db
+
 # Ver logs de un servicio específico
 docker compose logs flask
 docker compose logs n8n
