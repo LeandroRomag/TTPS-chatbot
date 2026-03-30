@@ -30,7 +30,6 @@ TTPS-chatbot/
   n8n/
     data/               ← datos de n8n (generado al correr)
     qdrant_data/        ← datos de qdrant (generado al correr)
-    ollama_data/        ← datos de ollama (generado al correr)
     workflows/          ← workflows exportados para importar en n8n
   docker-compose.yml    ← levanta todo el proyecto
   .env                  ← variables de entorno (no incluido en el repo)
@@ -70,7 +69,9 @@ Editá el `.env` con tus credenciales:
 ```env
 HUGGINGFACE_API_TOKEN=hf_xxxxxxxxxxxx   # Opcional, acelera los embeddings
 SECRET_KEY=una-clave-secreta-cualquiera
-DATABASE_URL=sqlite:///db.sqlite3
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=chatbot_db
 WHATSAPP_TOKEN=tu_token_de_meta
 PHONE_NUMBER_ID=tu_phone_id
 ```
